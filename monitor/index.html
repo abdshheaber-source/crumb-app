@@ -121,12 +121,21 @@ const Engine = (() => {
 
   // ---------- segmentation: single loaf on a light board ----------
   function segment(lab, w, h) {
-    const bs = gauss(lab.B, w, h, 2), vals = [];
-    for (let i = 0; i < w * h; i += 3) vals.push(bs[i]);
-    const th = otsu(vals);
+    // background model learned from the image border (works on white paper or any plain background)
+    const Ls = gauss(lab.L, w, h, 2), As = gauss(lab.A, w, h, 2), Bs = gauss(lab.B, w, h, 2);
+    const e = Math.max(3, Math.round(0.04 * Math.min(w, h))), bl = [], ba = [], bb = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x < e || y < e || x >= w - e || y >= h - e) { const i = y * w + x; bl.push(Ls[i]); ba.push(As[i]); bb.push(Bs[i]); }
+    const med = a => { const s = a.slice().sort((p, q) => p - q); return s[s.length >> 1]; };
+    const mad = (a, m) => med(a.map(v => Math.abs(v - m))) * 1.4826;
+    const mL = med(bl), mA = med(ba), mB = med(bb), sL = Math.max(4, mad(bl, mL)), sA = Math.max(1.5, mad(ba, mA)), sB = Math.max(2, mad(bb, mB));
+    const d = new Float32Array(w * h), vals = [];
+    for (let i = 0; i < w * h; i++) { const a = (Ls[i] - mL) / sL, b = (As[i] - mA) / sA, c = (Bs[i] - mB) / sB; d[i] = Math.sqrt(a * a + b * b + c * c); }
+    for (let i = 0; i < w * h; i += 3) vals.push(Math.min(d[i], 30));
+    const th = Math.max(3, otsu(vals));
     let m = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) m[i] = bs[i] > th && lab.L[i] > 35 ? 1 : 0;
-    m = dilate(erode(m, w, h, 2), w, h, 2);
+    for (let i = 0; i < w * h; i++) m[i] = d[i] > th ? 1 : 0;
+    m = erode(dilate(m, w, h, 3), w, h, 3);   // close pores/gaps inside the crumb
+    m = dilate(erode(m, w, h, 2), w, h, 2);   // remove specks
     const { lab: cl, sizes } = components(m, w, h);
     let best = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > (sizes[best] || 0)) best = i;
     const out = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) out[i] = cl[i] === best ? 1 : 0;
@@ -157,7 +166,11 @@ const Engine = (() => {
     let N = 0; for (let i = 0; i < n; i++) N += core[i];
     if (N < 2000) return { ok: false, reason: 'الرغيف صغير جداً في الصورة — قرّب الجوال', quality: q };
     // illumination-normalised lightness
-    const bg = gauss(lab.L, w, h, Math.max(8, D / 12));
+    // illumination estimated from the loaf only (normalised convolution) so a bright/white background does not leak in
+    const sg0 = Math.max(8, D / 12), Lm = new Float32Array(n), Mf = new Float32Array(n);
+    for (let i = 0; i < n; i++) { Mf[i] = mask[i] ? 1 : 0; Lm[i] = mask[i] ? lab.L[i] : 0; }
+    const gL = gauss(Lm, w, h, sg0), gM = gauss(Mf, w, h, sg0), bg = new Float32Array(n);
+    for (let i = 0; i < n; i++) bg[i] = gM[i] > 0.05 ? gL[i] / gM[i] : 50;
     const Ln = new Float32Array(n); for (let i = 0; i < n; i++) Ln[i] = lab.L[i] / (bg[i] + 1e-3);
     // quality metrics
     let sL = 0, clip = 0, lapV = 0, lapM = 0;
@@ -228,6 +241,27 @@ const Engine = (() => {
     if (q.clipped > 0.08) flags.push('إضاءة زائدة / انعكاس');
     if (fracArea < 0.12) flags.push('الرغيف صغير في الصورة — قرّب الجوال');
     if (fracArea > 0.85) flags.push('الرغيف يتجاوز إطار الصورة');
+    // native resolution of the loaf (pores need detail that resampling cannot recover)
+    q.nativeDiam = Math.sqrt(area * 4 / Math.PI) * s;
+    if (q.nativeDiam < 350) flags.push('دقة الرغيف في الصورة منخفضة — قرّب الجوال');
+    // lighting evenness: background ring around the loaf (white paper should be uniform) + side-light gradient across the crumb
+    const SW = small.width, SH = small.height, dil = dilate(sm, SW, SH, 10), near = dilate(sm, SW, SH, 3);
+    let cx = 0, cy = 0; for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) if (sm[y * SW + x]) { cx += x; cy += y; } cx /= area; cy /= area;
+    const sec = Array.from({ length: 8 }, () => [0, 0]), bgL = [], half = [[0, 0], [0, 0], [0, 0], [0, 0]];
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+      const i = y * SW + x;
+      if (dil[i] && !near[i]) { const k = ((Math.round((Math.atan2(y - cy, x - cx) + Math.PI) / (2 * Math.PI) * 8)) % 8); sec[k][0] += sl.L[i]; sec[k][1]++; bgL.push(sl.L[i]); }
+      if (sm[i]) { half[x < cx ? 0 : 1][0] += sl.L[i]; half[x < cx ? 0 : 1][1]++; half[y < cy ? 2 : 3][0] += sl.L[i]; half[y < cy ? 2 : 3][1]++; }
+    }
+    const sm8 = sec.filter(v => v[1] > 20).map(v => v[0] / v[1]);
+    q.bgL = bgL.length ? bgL.reduce((a, b) => a + b, 0) / bgL.length : 0;
+    q.ringRange = sm8.length >= 4 ? Math.max(...sm8) - Math.min(...sm8) : 0;
+    const hm = half.map(v => v[1] ? v[0] / v[1] : 0);
+    q.sideGrad = Math.max(Math.abs(hm[0] - hm[1]), Math.abs(hm[2] - hm[3]));
+    q.whitePaper = q.bgL > 75;
+    if (q.whitePaper && q.ringRange > 12) flags.push('ظل أو إضاءة غير متساوية حول الرغيف');
+    else if (q.sideGrad > 9) flags.push('إضاءة جانبية — اجعل الضوء من الأعلى');
+    if (!q.whitePaper) flags.push('يُفضّل وضع الرغيف على ورقة بيضاء');
     return { ok: true, features, quality: q, flags, maps: { w, h, core, pore, wet, smoothMap: tex, rgba: c.data } };
   }
 
@@ -333,7 +367,7 @@ const Engine = (() => {
   return { analyze, ruleScore, trainModel, scoreWithModel, bootstrapCI, weightedKappa, icc21, mean, sd, median, FEATS };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
-</script><script>const BUILTIN = {"w":[-0.11686,0.58554,-0.04288,-0.99598,-0.06824,-0.18206,-0.68203,-0.29593,-0.1928,-0.29563,-0.11821,-0.41269],"th":[-9.10961,-2.71891,-0.09558,1.7595],"K":5,"mu":[0.13998,28.00706,2.86241,0.13631,0.05917,0.00011,0.58715,5.72397,2.0328,0.64875,0.07304,4.80239],"sg":[0.16034,25.78625,3.31174,0.20963,0.03776,0.00146,0.38872,10.04314,1.18303,0.08322,0.03992,0.65032],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"trainedAt":1795449187507,"n":187,"builtin":true,"label":"\u0645\u0639\u0627\u064a\u064e\u0631 \u0639\u0644\u0649 \u0635\u0648\u0631 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062c\u0639\u064a\u0629"};</script><script>/* ===== تطبيق المراقبين: تحليل فقط، يعمل دون إنترنت ===== */
+</script><script>const BUILTIN = {"w":[-0.2311,0.75951,0.00684,-0.8696,-0.00061,-0.21215,-0.50754,-0.49309,-0.24261,-0.36077,-0.18703,-0.31887],"th":[-9.48226,-2.94397,-0.10267,1.84582],"K":5,"mu":[0.16945,23.6308,4.26217,0.18266,0.05936,0.0001,0.56565,5.20655,2.90647,0.60259,0.07021,4.80599],"sg":[0.19433,19.50366,5.2168,0.28208,0.04464,0.00143,0.37048,9.26794,1.35981,0.07856,0.04459,0.80972],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"trainedAt":1795452654419,"n":187,"builtin":true,"label":"\u0645\u0639\u0627\u064a\u064e\u0631 \u0639\u0644\u0649 \u0635\u0648\u0631 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062c\u0639\u064a\u0629"};</script><script>/* ===== تطبيق المراقبين: تحليل فقط، يعمل دون إنترنت ===== */
 const MODEL_URL = '__MODEL_URL__';   // رابط تطبيق التدريب (Apps Script) — منه يُسحب النموذج المعتمد
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const LEVEL = { 1: 'ضعيف جدًا', 2: 'ضعيف', 3: 'مقبول', 4: 'جيد', 5: 'جيد جدًا' };
@@ -398,7 +432,7 @@ function renderEval() {
     el.innerHTML = `<div class="card"><h2>تقييم عيّنة</h2>
       <label>المخبز<input id="e-bak" list="bl" value="${esc(st.bakery || '')}" placeholder="اسم المخبز"></label><datalist id="bl">${(st.bakeries || []).map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
       <div class="row"><label>النوع<select id="e-type"><option value="line">خط إنتاج</option><option value="shelf">أرفف</option></select></label><label>الخط<input id="e-line" type="number" min="1" max="6" value="${st.line || 1}"></label></div>
-      <div class="hint">افصل الرغيف وضع <b>الطبقة العليا</b> ووجهها الداخلي للأعلى على خلفية داكنة. صوّر من الأعلى مباشرة، بلا فلاش ولا ظل، ورغيف واحد يملأ معظم الإطار. صوّر ${LOAVES} أرغفة عشوائية.</div>
+      <div class="hint"><b>ورقة A4 بيضاء</b> على سطح مستوٍ، والرغيف في منتصفها ووجهه الداخلي (الطبقة العليا) للأعلى. إضاءة <b>بيضاء علوية</b> بلا ظلال، دون فلاش. الجوال فوق الرغيف مباشرة وموازٍ للورقة، والرغيف يملأ معظم الإطار. صوّر ${LOAVES} أرغفة عشوائية من العيّنة، لا الأفضل.</div>
       <button class="primary" id="e-go">بدء</button></div>`;
     $('#e-go').onclick = () => { const b = $('#e-bak').value.trim(); lsSet('mSet', { bakery: b, line: +$('#e-line').value, bakeries: b ? [...new Set([b, ...(st.bakeries || [])])].slice(0, 80) : (st.bakeries || []) }); cur = { ts: new Date().toISOString(), bakery: b, type: $('#e-type').value, line: +$('#e-line').value, ver: model().version, loaves: [] }; renderEval(); };
     return;
