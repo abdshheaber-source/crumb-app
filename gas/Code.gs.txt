@@ -4,16 +4,19 @@
  * التشغيل لأول مرة: نفّذ الدالة setup() من المحرر مرة واحدة، ثم انشر كتطبيق ويب.
  */
 const P = PropertiesService.getScriptProperties();
-const SH = { MON: 'المراقبون', SMP: 'العينات', RAT: 'التقييمات', MOD: 'النماذج', LOG: 'السجل' };
+const SH = { MON: 'المراقبون', SMP: 'العينات', RAT: 'التقييمات', GLD: 'المرجعية', MOD: 'النماذج', LOG: 'السجل' };
 const HEAD = {
   [SH.MON]: ['الاسم', 'الدور (monitor/admin)', 'فعّال (نعم/لا)'],
   [SH.SMP]: ['loafId', 'sampleId', 'رقم الرغيف', 'الوقت', 'المراقب', 'المخبز', 'النوع', 'الخط', 'تقييم المراقب', 'درجة التطبيق', 'إصدار النموذج', 'fileId', 'الصورة', 'ملاحظات الجودة',
-    'poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy'],
+    ...FEATS_(), 'القطر (سم)', 'الاستدارة', 'متوسط المسام (ملم)', 'سماكة الجدران (ملم)', 'مسام/سم²', 'الورقة', 'ميل الجوال', 'الجهاز'],
+  [SH.GLD]: ['loafId', 'الدرجة المرجعية', 'أُضيفت في', 'المصدر'],
   [SH.RAT]: ['الوقت', 'loafId', 'المقيّم', 'التقييم', 'مرجعية (1/0)', 'الدرجة المرجعية', 'حسم المشرف (1/0)'],
   [SH.MOD]: ['الإصدار', 'وقت النشر', 'نشره', 'عدد الأرغفة', 'تطابق تام', 'فرق ≤1', 'كابا', 'كشف الضعيف', 'ملاحظة', 'fileId', 'فعّال'],
   [SH.LOG]: ['الوقت', 'الحدث', 'التفاصيل']
 };
-const FEATS = ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy'];
+function FEATS_() { return ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy', 'cellElong', 'orientCoh', 'wallRel', 'centerEdge', 'glossFrac', 'fiberFrac']; }
+const FEATS = FEATS_();
+const F0 = 14, NF = FEATS.length;   // first feature column (0-based) in «العينات»
 
 // ---------- إعداد أولي ----------
 function setup() {
@@ -25,7 +28,7 @@ function setup() {
   Object.keys(HEAD).forEach(n => {
     let s = ss.getSheetByName(n);
     if (!s) s = ss.insertSheet(n);
-    if (s.getLastRow() === 0) { s.appendRow(HEAD[n]); s.getRange(1, 1, 1, HEAD[n].length).setFontWeight('bold').setBackground('#005B8F').setFontColor('#fff'); s.setFrozenRows(1); s.setRightToLeft(true); }
+    if (s.getLastRow() <= 1) { s.clear(); s.appendRow(HEAD[n]); s.getRange(1, 1, 1, HEAD[n].length).setFontWeight('bold').setBackground('#005B8F').setFontColor('#fff'); s.setFrozenRows(1); s.setRightToLeft(true); }
   });
   const d = ss.getSheetByName('Sheet1') || ss.getSheetByName('ورقة1'); if (d && ss.getSheets().length > 1) ss.deleteSheet(d);
   if (!P.getProperty('FOLDER_ID')) P.setProperty('FOLDER_ID', DriveApp.createFolder('صور تدريب نموذج التجانس').getId());
@@ -74,13 +77,15 @@ function saveSample(p) {
       const blob = Utilities.newBlob(Utilities.base64Decode(l.jpeg.split(',')[1]), 'image/jpeg', `${id}_${p.bakery}_${p.monitor}.jpg`);
       const f = folder.createFile(blob);
       out.push([id, p.sampleId, l.idx, new Date(p.ts), p.monitor, p.bakery, p.type, p.line, l.ownRating, round_(l.appScore, 2), p.modelVer || 'مدمج', f.getId(),
-        `=HYPERLINK("${f.getUrl()}","صورة")`, (l.flags || []).join('، '), ...FEATS.map(k => round_(l.features[k], 5))]);
+        `=HYPERLINK("${f.getUrl()}","صورة")`, (l.flags || []).join('، '), ...FEATS.map(k => round_(l.features[k], 5)),
+        round_(sh(l, 'diameterCm'), 1), round_(sh(l, 'roundness'), 3), round_(sh(l, 'poreMm'), 2), round_(sh(l, 'wallMm'), 2), round_(sh(l, 'poresPerCm2'), 1), l.sheet ? l.sheet.paper : 'غير مكتشفة', l.sheet ? round_(l.sheet.tilt, 3) : '', p.device || '']);
     });
     const s = sh_(SH.SMP); s.getRange(s.getLastRow() + 1, 1, out.length, out[0].length).setValues(out);
     log_('عيّنة', `${p.monitor} • ${p.bakery} • ${out.length} أرغفة`);
     return { ok: true, n: out.length };
   } finally { lock.releaseLock(); }
 }
+const sh = (l, k) => l.shape ? l.shape[k] : null;
 const round_ = (v, d) => v == null || isNaN(v) ? '' : Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
 
 /** قائمة المراجعة: صور الزملاء التي لم يقيّمها هذا المراقب، الأقل تقييمًا أولًا */
@@ -89,11 +94,14 @@ function getQueue(rater, maxRaters) {
   const S = rows_(SH.SMP), R = rows_(SH.RAT);
   const cnt = {}, mine = new Set(), goldDone = [];
   R.forEach(r => { if (r[4] == 1) { if (r[2] === rater) goldDone.push(String(r[1])); return; } cnt[r[1]] = (cnt[r[1]] || 0) + 1; if (r[2] === rater) mine.add(String(r[1])); });
-  const todo = S.filter(s => s[4] !== rater && !mine.has(String(s[0])) && (cnt[s[0]] || 0) < maxRaters - 1)
+  const G = rows_(SH.GLD).map(g => ({ id: String(g[0]), g: +g[1] })), goldIds = new Set(G.map(g => g.id));
+  const byId = {}; S.forEach(s => byId[String(s[0])] = s);
+  const todo = S.filter(s => s[4] !== rater && !mine.has(String(s[0])) && !goldIds.has(String(s[0])) && (cnt[s[0]] || 0) < maxRaters - 1)
     .map(s => ({ id: String(s[0]), fileId: s[11], n: cnt[s[0]] || 0 }))
     .sort((a, b) => a.n - b.n);
+  const gold = G.filter(g => byId[g.id] && byId[g.id][4] !== rater && !mine.has(g.id) && !goldDone.includes(g.id)).map(g => ({ id: g.id, fileId: byId[g.id][11], g: g.g, gold: true }));
   const myDone = R.filter(r => r[2] === rater && r[4] != 1).length;
-  return { todo: todo.slice(0, 40), remaining: todo.length, goldDone: goldDone, myDone: myDone };
+  return { todo: todo.slice(0, 40), remaining: todo.length, gold: gold, myDone: myDone };
 }
 function getImage(fileId) {
   const b = DriveApp.getFileById(fileId).getBlob();
@@ -107,10 +115,11 @@ function saveRating(loafId, rater, rating, gold, goldGrade, arb) {
 /** كل البيانات اللازمة للدمج والتدريب (للمشرف) */
 function getTrainingData(pin) {
   checkPin_(pin);
-  const S = rows_(SH.SMP).map(s => ({ id: String(s[0]), sampleId: s[1], monitor: s[4], bakery: s[5], own: +s[8], app: +s[9], fileId: s[11], f: Object.fromEntries(FEATS.map((k, j) => [k, +s[14 + j]])) }));
+  const S = rows_(SH.SMP).map(s => ({ id: String(s[0]), sampleId: s[1], monitor: s[4], bakery: s[5], own: +s[8], app: +s[9], fileId: s[11], f: Object.fromEntries(FEATS.map((k, j) => [k, +s[F0 + j]])) }));
+  const G = rows_(SH.GLD).map(g => ({ id: String(g[0]), g: +g[1] }));
   const R = rows_(SH.RAT).map(r => ({ id: String(r[1]), rater: r[2], v: +r[3], gold: r[4] == 1, g: +r[5], arb: r[6] == 1 }));
   const M = rows_(SH.MOD).map(r => ({ version: r[0], at: r[1], n: r[3], acc: r[4], w1: r[5], qwk: r[6], poor: r[7], note: r[8], active: r[10] }));
-  return { samples: S, ratings: R, models: M };
+  return { samples: S, ratings: R, models: M, gold: G };
 }
 function checkPin_(pin) { if (String(pin) !== P.getProperty('ADMIN_PIN')) throw new Error('رمز المشرف غير صحيح'); }
 function verifyPin(pin) { checkPin_(pin); return true; }
@@ -146,4 +155,19 @@ function getMyStats(rater) {
   const R = rows_(SH.RAT).filter(r => r[2] === rater);
   const gold = R.filter(r => r[4] == 1 && +r[3] > 0).map(r => ({ v: +r[3], g: +r[5] }));
   return { gold: gold, peer: R.filter(r => r[4] != 1).length, own: rows_(SH.SMP).filter(s => s[4] === rater).length };
+}
+
+/** المشرف يعتمد أرغفة ميدانية متفقًا عليها كصور مرجعية مخفية */
+function addGold(pin, items) {
+  checkPin_(pin);
+  const s = sh_(SH.GLD), have = new Set(rows_(SH.GLD).map(g => String(g[0]))), add = items.filter(it => !have.has(String(it.id)));
+  if (add.length) s.getRange(s.getLastRow() + 1, 1, add.length, 4).setValues(add.map(it => [it.id, it.g, new Date(), it.src || 'إجماع']));
+  log_('صور مرجعية', '+' + add.length);
+  return { added: add.length, total: have.size + add.length };
+}
+function removeGold(pin, id) {
+  checkPin_(pin);
+  const s = sh_(SH.GLD), R = rows_(SH.GLD), i = R.findIndex(g => String(g[0]) === String(id));
+  if (i >= 0) s.deleteRow(i + 2);
+  return true;
 }

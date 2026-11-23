@@ -42,7 +42,8 @@ nav button b{display:block;font-size:20px}
 
 .score{font-size:40px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:6px}.dot.ok{background:var(--ok)}.dot.mid{background:var(--w)}.dot.bad{background:var(--bad)}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:9}
-#ver{display:block;font-weight:400;opacity:.85;font-size:12px}nav button{font-size:13px}</style></head>
+
+.legend .b:before{background:#28AAFF}.legend .y:before{background:#FFC800}#ver{display:block;font-weight:400;opacity:.85;font-size:12px}nav button{font-size:13px}</style></head>
 <body><header>تقييم التجانس الداخلي للرغيف<span id="ver"></span></header>
 <main><section class="tab" id="tab-eval"></section><section class="tab" id="tab-log" hidden></section></main>
 <nav><button data-tab="eval"><b>📷</b>تقييم</button><button data-tab="log"><b>🗂️</b>السجل</button></nav>
@@ -120,20 +121,25 @@ const Engine = (() => {
   const dilate = (m, w, h, r) => { const f = new Float32Array(m); const o = minmax(f, w, h, r, true); const u = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) u[i] = o[i] > 0.5; return u; };
 
   // ---------- segmentation: single loaf on a light board ----------
-  function segment(lab, w, h) {
+  function segment(lab, w, h, ref, roi) {
     // background model learned from the image border (works on white paper or any plain background)
     const Ls = gauss(lab.L, w, h, 2), As = gauss(lab.A, w, h, 2), Bs = gauss(lab.B, w, h, 2);
     const e = Math.max(3, Math.round(0.04 * Math.min(w, h))), bl = [], ba = [], bb = [];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x < e || y < e || x >= w - e || y >= h - e) { const i = y * w + x; bl.push(Ls[i]); ba.push(As[i]); bb.push(Bs[i]); }
     const med = a => { const s = a.slice().sort((p, q) => p - q); return s[s.length >> 1]; };
     const mad = (a, m) => med(a.map(v => Math.abs(v - m))) * 1.4826;
-    const mL = med(bl), mA = med(ba), mB = med(bb), sL = Math.max(4, mad(bl, mL)), sA = Math.max(1.5, mad(ba, mA)), sB = Math.max(2, mad(bb, mB));
-    const d = new Float32Array(w * h), vals = [];
-    for (let i = 0; i < w * h; i++) { const a = (Ls[i] - mL) / sL, b = (As[i] - mA) / sA, c = (Bs[i] - mB) / sB; d[i] = Math.sqrt(a * a + b * b + c * c); }
-    for (let i = 0; i < w * h; i += 3) vals.push(Math.min(d[i], 30));
+    let mL = med(bl), mA = med(ba), mB = med(bb), sL = Math.max(4, mad(bl, mL)), sA = Math.max(1.5, mad(ba, mA)), sB = Math.max(2, mad(bb, mB));
+    if (ref) { mL = ref.L; mA = ref.a; mB = ref.b; sL = ref.sL || 5; sA = ref.sA || 2; sB = ref.sB || 3; }
+    const d = new Float32Array(w * h), vals = [], loc = ref && ref.local;
+    if (loc) sL = Math.max(4, 2 * Math.max(...loc.map(c => c.sL)));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; let rL = mL, rA = mA, rB = mB;
+      if (loc) { let sw = 0; rL = rA = rB = 0; for (const c of loc) { const q = 1 / ((x / w - c.x) ** 2 + (y / h - c.y) ** 2 + 1e-4); sw += q; rL += q * c.L; rA += q * c.a; rB += q * c.b; } rL /= sw; rA /= sw; rB /= sw; }
+      const a = (Ls[i] - rL) / sL, b = (As[i] - rA) / sA, c = (Bs[i] - rB) / sB; d[i] = Math.sqrt(a * a + b * b + c * c); }
+    for (let i = 0; i < w * h; i += 3) if (!roi || roi[i]) vals.push(Math.min(d[i], 30));
     const th = Math.max(3, otsu(vals));
     let m = new Uint8Array(w * h);
-    for (let i = 0; i < w * h; i++) m[i] = d[i] > th ? 1 : 0;
+    for (let i = 0; i < w * h; i++) m[i] = d[i] > th && (!roi || roi[i]) ? 1 : 0;
     m = erode(dilate(m, w, h, 3), w, h, 3);   // close pores/gaps inside the crumb
     m = dilate(erode(m, w, h, 2), w, h, 2);   // remove specks
     const { lab: cl, sizes } = components(m, w, h);
@@ -142,13 +148,73 @@ const Engine = (() => {
     return fillHoles(out, w, h);
   }
 
+
+  // ---------- calibration sheet: 4 black corner markers (+ grey strip) on white paper ----------
+  // marker centres 15 mm from each paper edge => A4: 180 x 267 mm, A3: 267 x 390 mm
+  const SHEETS = { A4: [180, 267], A3: [267, 390] }, GREY_L0 = 50;
+  function detectSheet(img, resample, paper) {
+    const M = resample(img, null, 900), W = M.width, H = M.height, n = W * H, lb = toLab(M.data, n);
+    const dk = new Uint8Array(n); for (let i = 0; i < n; i++) dk[i] = lb.L[i] < 40 && Math.abs(lb.A[i]) < 20 && Math.abs(lb.B[i]) < 20 ? 1 : 0;
+    const { lab: cl, sizes } = components(dk, W, H), K = sizes.length;
+    const st = Array.from({ length: K }, () => ({ n: 0, sx: 0, sy: 0, x0: 1e9, y0: 1e9, x1: -1, y1: -1 }));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = cl[y * W + x]; if (!c) continue; const o = st[c]; o.n++; o.sx += x; o.sy += y; if (x < o.x0) o.x0 = x; if (x > o.x1) o.x1 = x; if (y < o.y0) o.y0 = y; if (y > o.y1) o.y1 = y; }
+    const cand = [];
+    for (let c = 1; c < K; c++) { const o = st[c], bw = o.x1 - o.x0 + 1, bh = o.y1 - o.y0 + 1; if (o.n < 40 || o.n > 0.01 * n) continue; const ar = bw / bh, fill = o.n / (bw * bh); if (ar < 0.6 || ar > 1.6 || fill < 0.75) continue; cand.push({ x: o.sx / o.n, y: o.sy / o.n, a: o.n, s: Math.sqrt(o.n) }); }
+    const none = { found: false };
+    if (cand.length < 4) return none;
+    const corners = [[0, 0], [W, 0], [W, H], [0, H]], pick = [];
+    for (const [cx, cy] of corners) { let best = null, bd = 1e18; for (const c of cand) { if (pick.includes(c)) continue; const d = (c.x - cx) ** 2 + (c.y - cy) ** 2; if (d < bd) { bd = d; best = c; } } pick.push(best); }
+    const areas = pick.map(p => p.a).sort((a, b) => a - b); if (areas[3] > 3 * areas[0]) return none;
+    const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+    const top = dist(pick[0], pick[1]), bot = dist(pick[3], pick[2]), lef = dist(pick[0], pick[3]), rig = dist(pick[1], pick[2]);
+    const hz = (top + bot) / 2, vt = (lef + rig) / 2, tilt = Math.max(Math.abs(top - bot) / hz, Math.abs(lef - rig) / vt);
+    if (tilt > 0.25) return none;
+    const sz = SHEETS[paper] || SHEETS.A4, lng = Math.max(hz, vt), sht = Math.min(hz, vt), ratio = sht / lng;
+    if (ratio < 0.58 || ratio > 0.78) return none;
+    const mmM = (sz[1] / lng + sz[0] / sht) / 2, ms = pick.reduce((a, p) => a + p.s, 0) / 4;
+    // paper white: ring around each marker
+    const corner = [], wl = [], wa = [], wb = [], gcx = pick.reduce((a, p) => a + p.x, 0) / 4, gcy = pick.reduce((a, p) => a + p.y, 0) / 4;
+    for (const p of pick) { const cl0 = wl.length; for (let y = Math.max(0, Math.round(p.y - 3 * ms)); y < Math.min(H, p.y + 3 * ms); y++) for (let x = Math.max(0, Math.round(p.x - 3 * ms)); x < Math.min(W, p.x + 3 * ms); x++) {
+      const r = Math.hypot(x - p.x, y - p.y); if (r < 1.3 * ms || r > 3 * ms) continue;
+      if ((x - p.x) * (gcx - p.x) <= 0 || (y - p.y) * (gcy - p.y) <= 0) continue;   // inward quadrant only (stay on the paper)
+      const i = y * W + x; if (lb.L[i] > 55) { wl.push(lb.L[i]); wa.push(lb.A[i]); wb.push(lb.B[i]); } }
+      corner.push({ x: p.x / W, y: p.y / H, n: wl.length - cl0, L: wl.slice(cl0), a: wa.slice(cl0), b: wb.slice(cl0) }); }
+    const med = a => { const s = a.slice().sort((p, q) => p - q); return s.length ? s[s.length >> 1] : NaN; };
+    const madv = (a, m) => med(a.map(z => Math.abs(z - m))) * 1.4826;
+    const white = { L: med(wl), a: med(wa), b: med(wb) };
+    white.local = corner.map(c => ({ x: c.x, y: c.y, L: c.n ? med(c.L) : med(wl), a: c.n ? med(c.a) : med(wa), b: c.n ? med(c.b) : med(wb), sL: c.n ? madv(c.L, med(c.L)) : 0 })); white.sL = Math.max(4, 2 * madv(wl, white.L)); white.sA = Math.max(1.5, 2 * madv(wa, white.a)); white.sB = Math.max(2, 2 * madv(wb, white.b));
+    // grey strip: centred between the two markers of a short side
+    const shortPairs = hz < vt ? [[0, 1], [3, 2]] : [[0, 3], [1, 2]];
+    let grey = null;
+    for (const [i0, i1] of shortPairs) {
+      const p = pick[i0], q2 = pick[i1], mx = (p.x + q2.x) / 2, my = (p.y + q2.y) / 2, ux = (q2.x - p.x) / dist(p, q2), uy = (q2.y - p.y) / dist(p, q2);
+      const hl = 12 / mmM, hw = 3 / mmM, v = [];
+      for (let t = -hl; t <= hl; t += 1) for (let u = -hw; u <= hw; u += 1) { const x = Math.round(mx + ux * t - uy * u), y = Math.round(my + uy * t + ux * u); if (x >= 0 && y >= 0 && x < W && y < H) v.push(lb.L[y * W + x]); }
+      if (!v.length) continue; const gm = med(v), mad = med(v.map(z => Math.abs(z - gm)));
+      if (gm > 25 && gm < 80 && mad < 4 && gm < white.L - 15) { grey = gm; break; }
+    }
+    return { found: true, paper: paper in SHEETS ? paper : 'A4', mmPerPx: mmM * (W / img.width), tilt, white, grey, markerPx: ms * img.width / W, pts: pick.map(p => [p.x / W, p.y / H]) };
+  }
+
   // ---------- full analysis of one loaf image ----------
   // img = {data: RGBA Uint8ClampedArray, width, height}; resample: function(img, box, maxDim) -> img (provided by caller)
-  function analyze(img, resample) {
+  function analyze(img, resample, opts = {}) {
+    const sheet = detectSheet(img, resample, opts.paper || 'A4');
     // pass 1: low-res segmentation to locate the loaf
     const small = resample(img, null, 360);
     const sl = toLab(small.data, small.width * small.height);
-    const sm = segment(sl, small.width, small.height);
+    let roi = null;
+    if (sheet.found) {   // region inside the marker quadrilateral (ignore the table around the paper)
+      const P = sheet.pts.map(([u, v]) => [u * small.width, v * small.height]);
+      const inside = (x, y) => { let c = false; for (let i = 0, j = 3; i < 4; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+      roi = new Uint8Array(small.width * small.height); for (let y = 0; y < small.height; y++) for (let x = 0; x < small.width; x++) roi[y * small.width + x] = inside(x, y) ? 1 : 0;
+    }
+    let sm = segment(sl, small.width, small.height, sheet.found ? sheet.white : null, roi);
+    if (roi) {
+      for (let i = 0; i < sm.length; i++) if (!roi[i]) sm[i] = 0;
+      const { lab: c2, sizes: z2 } = components(sm, small.width, small.height); let b2 = 0; for (let i = 1; i < z2.length; i++) if (z2[i] > (z2[b2] || 0)) b2 = i;
+      for (let i = 0; i < sm.length; i++) sm[i] = c2[i] === b2 && b2 ? 1 : 0;
+    }
     let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, area = 0;
     for (let y = 0; y < small.height; y++) for (let x = 0; x < small.width; x++) if (sm[y * small.width + x]) { area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     const fracArea = area / (small.width * small.height);
@@ -159,6 +225,11 @@ const Engine = (() => {
     // pass 2: normalised crop (loaf ~ 600 px) => scale-invariant features
     const c = resample(img, box, 600), w = c.width, h = c.height, n = w * h;
     const lab = toLab(c.data, n);
+    if (sheet.found && sheet.white.L > 50) {          // white-balance + contrast normalisation from the paper (and grey strip)
+      const Lw = sheet.white.L, gain = sheet.grey != null && Lw - sheet.grey > 10 ? (100 - GREY_L0) / (Lw - sheet.grey) : 100 / Lw;
+      for (let i = 0; i < n; i++) { lab.L[i] = sheet.grey != null ? 100 - (Lw - lab.L[i]) * gain : lab.L[i] * gain; lab.A[i] -= sheet.white.a; lab.B[i] -= sheet.white.b; }
+    }
+    const mm = sheet.found ? sheet.mmPerPx * (box.w / w) : null;   // mm per pixel of the normalised crop
     let mask = segment(lab, w, h);
     const D = Math.sqrt(mask.reduce((a, b) => a + b, 0) * 4 / Math.PI);       // equivalent diameter (px)
     const rim = Math.max(3, Math.round(D * 0.035));
@@ -224,6 +295,36 @@ const Engine = (() => {
       m1 += M; m2 += M * M; nb++;
     }
     const lacunarity = nb && m1 ? Math.min(50, (m2 / nb) / ((m1 / nb) ** 2)) : 50;
+    // ---------- pita-specific indicators ----------
+    // pore shape: elongation & orientation coherence (second moments of each pore)
+    const { lab: plab, sizes: psz } = components(pore, w, h), NP = psz.length;
+    const mo = new Float64Array(NP * 5);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = plab[y * w + x]; if (!c) continue; const o = c * 5; mo[o] += x; mo[o + 1] += y; mo[o + 2] += x * x; mo[o + 3] += y * y; mo[o + 4] += x * y; }
+    let eW = 0, eS = 0, oc = 0, os = 0;
+    for (let c = 1; c < NP; c++) { const m = psz[c]; if (m < 6) continue; const o = c * 5, mx = mo[o] / m, my = mo[o + 1] / m;
+      const cxx = mo[o + 2] / m - mx * mx, cyy = mo[o + 3] / m - my * my, cxy = mo[o + 4] / m - mx * my, tr = cxx + cyy, dt = Math.sqrt(Math.max(0, (cxx - cyy) ** 2 + 4 * cxy * cxy));
+      const l1 = (tr + dt) / 2, l2 = Math.max(1e-3, (tr - dt) / 2), el = Math.min(10, Math.sqrt(l1 / l2)), th = 0.5 * Math.atan2(2 * cxy, cxx - cyy);
+      eS += m * el; eW += m; oc += m * Math.cos(2 * th); os += m * Math.sin(2 * th); }
+    const cellElong = eW ? eS / eW : 1, orientCoh = eW ? Math.hypot(oc, os) / eW : 0;
+    // stereology: mean chord length of crumb walls and of pores (pi*A/P), relative to loaf diameter
+    let per = 0; for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) { const i = y * w + x; if (!core[i]) continue; if (core[i + 1] && pore[i] !== pore[i + 1]) per++; if (core[i + w] && pore[i] !== pore[i + w]) per++; }
+    const wallPx = per ? Math.PI * (N - pc) / per : D, porePx = per ? Math.PI * pc / per : 0;
+    const wallRel = Math.min(30, wallPx / D * 100);
+    // centre vs edge: pore fraction in the inner disk vs the outer ring
+    let ccx = 0, ccy = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) { ccx += x; ccy += y; } const MA = mask.reduce((a, b) => a + b, 0); ccx /= MA; ccy /= MA;
+    const R0 = D / 2; let ia = 0, ip = 0, oa = 0, op = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!core[i]) continue; if (Math.hypot(x - ccx, y - ccy) < 0.5 * R0) { ia++; ip += pore[i]; } else { oa++; op += pore[i]; } }
+    const pin = ia ? ip / ia : 0, pout = oa ? op / oa : 0, centerEdge = Math.abs(pin - pout) / ((pin + pout) / 2 + 0.01);
+    // doughy gloss: bright AND very smooth spots; fibres: bright thin ridges (white top-hat)
+    const open = minmax(minmax(Ls, w, h, k, false), w, h, k, true);
+    let gl = 0, fb = 0;
+    for (let i = 0; i < n; i++) { if (!core[i]) continue; if (Ln[i] > 1.1 && tex[i] < 0.018) gl++; if (Ls[i] - open[i] > 14) fb++; }
+    const glossFrac = gl / N, fiberFrac = fb / N;
+    // loaf shape: axis ratio from mask moments; size in cm when the sheet gave a scale
+    let sxx = 0, syy = 0, sxy = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) { sxx += (x - ccx) ** 2; syy += (y - ccy) ** 2; sxy += (x - ccx) * (y - ccy); }
+    sxx /= MA; syy /= MA; sxy /= MA; const tr2 = sxx + syy, dt2 = Math.sqrt((sxx - syy) ** 2 + 4 * sxy * sxy);
+    const roundness = Math.sqrt(Math.max(0, (tr2 - dt2) / 2) / ((tr2 + dt2) / 2));
+    const shape = { roundness, diameterCm: mm ? D * mm / 10 : null, majorCm: mm ? 4 * Math.sqrt((tr2 + dt2) / 2) * mm / 10 : null, minorCm: mm ? 4 * Math.sqrt(Math.max(0, (tr2 - dt2) / 2)) * mm / 10 : null, poreMm: mm && pc > 0.01 * N ? porePx * mm : null, wallMm: mm && pc > 0.01 * N ? wallPx * mm : null, poresPerCm2: mm ? pSizes.length / (N * mm * mm / 100) : null };
     // GLCM (16 grey levels, distance ~ pore scale, 4 directions)
     const Q = 16; let qmn = Infinity, qmx = -Infinity;
     for (let i = 0; i < n; i++) if (core[i]) { if (Ln[i] < qmn) qmn = Ln[i]; if (Ln[i] > qmx) qmx = Ln[i]; }
@@ -233,7 +334,8 @@ const Engine = (() => {
       for (let y = Math.max(0, -dy); y < h - Math.max(0, dy); y++) for (let x = 0; x < w - dx; x++) { const i = y * w + x, j = (y + dy) * w + x + dx; if (core[i] && core[j]) { P[qv[i] * Q + qv[j]]++; P[qv[j] * Q + qv[i]]++; pt += 2; } }
     let con = 0, hom = 0, ene = 0, ent = 0;
     for (let a = 0; a < Q; a++) for (let b = 0; b < Q; b++) { const p = P[a * Q + b] / (pt || 1); if (!p) continue; con += p * (a - b) ** 2; hom += p / (1 + Math.abs(a - b)); ene += p * p; ent -= p * Math.log2(p); }
-    const features = { poreFrac, poreDensity, poreSizeCV, smoothFrac, texMean, wetFrac, gridCV, lacunarity, glcmContrast: con, glcmHomog: hom, glcmEnergy: ene, glcmEntropy: ent };
+    const features = { poreFrac, poreDensity, poreSizeCV, smoothFrac, texMean, wetFrac, gridCV, lacunarity, glcmContrast: con, glcmHomog: hom, glcmEnergy: ene, glcmEntropy: ent, cellElong, orientCoh, wallRel, centerEdge, glossFrac, fiberFrac };
+    q.sheet = sheet.found ? { paper: sheet.paper, mmPerPx: sheet.mmPerPx, tilt: sheet.tilt, white: sheet.white.L, grey: sheet.grey } : null;
     // quality flags
     const flags = [];
     if (q.sharpness < 2.5) flags.push('الصورة غير حادة (مهزوزة)');
@@ -261,8 +363,9 @@ const Engine = (() => {
     q.whitePaper = q.bgL > 75;
     if (q.whitePaper && q.ringRange > 12) flags.push('ظل أو إضاءة غير متساوية حول الرغيف');
     else if (q.sideGrad > 9) flags.push('إضاءة جانبية — اجعل الضوء من الأعلى');
-    if (!q.whitePaper) flags.push('يُفضّل وضع الرغيف على ورقة بيضاء');
-    return { ok: true, features, quality: q, flags, maps: { w, h, core, pore, wet, smoothMap: tex, rgba: c.data } };
+    if (!sheet.found) flags.push(q.whitePaper ? 'لم تظهر مربعات ورقة المعايرة كاملة — لا قياس بالملم' : 'ضع الرغيف على ورقة المعايرة البيضاء');
+    else { if (sheet.tilt > 0.06) flags.push('الجوال غير موازٍ للورقة'); if (sheet.grey == null) flags.push('المستطيل الرمادي غير ظاهر — تصحيح الإضاءة جزئي'); }
+    return { ok: true, features, quality: q, flags, shape, maps: { w, h, core, pore, wet, smoothMap: tex, rgba: c.data, plab, psz, mm } };
   }
 
   // ---------- default rule-based score (before training) ----------
@@ -334,7 +437,7 @@ const Engine = (() => {
     let mode = 0; p.forEach((v, k) => { if (v > p[mode]) mode = k; });
     return { p, expected: ev, cls: mode + 1 };
   }
-  const FEATS = ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy'];
+  const FEATS = ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy', 'cellElong', 'orientCoh', 'wallRel', 'centerEdge', 'glossFrac', 'fiberFrac'];
   function standardise(rows) {
     const mu = FEATS.map(f => mean(rows.map(r => r[f]))), sg = FEATS.map((f, j) => sd(rows.map(r => r[f])) || 1);
     return { mu, sg, X: rows.map(r => FEATS.map((f, j) => (r[f] - mu[j]) / sg[j])) };
@@ -364,10 +467,10 @@ const Engine = (() => {
     const x = model.feats.map((k, j) => (f[k] - model.mu[j]) / model.sg[j]);
     return predictOrdinal(model, x);
   }
-  return { analyze, ruleScore, trainModel, scoreWithModel, bootstrapCI, weightedKappa, icc21, mean, sd, median, FEATS };
+  return { analyze, detectSheet, ruleScore, trainModel, scoreWithModel, bootstrapCI, weightedKappa, icc21, mean, sd, median, FEATS };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
-</script><script>const BUILTIN = {"w":[-0.2311,0.75951,0.00684,-0.8696,-0.00061,-0.21215,-0.50754,-0.49309,-0.24261,-0.36077,-0.18703,-0.31887],"th":[-9.48226,-2.94397,-0.10267,1.84582],"K":5,"mu":[0.16945,23.6308,4.26217,0.18266,0.05936,0.0001,0.56565,5.20655,2.90647,0.60259,0.07021,4.80599],"sg":[0.19433,19.50366,5.2168,0.28208,0.04464,0.00143,0.37048,9.26794,1.35981,0.07856,0.04459,0.80972],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"trainedAt":1795452654419,"n":187,"builtin":true,"label":"\u0645\u0639\u0627\u064a\u064e\u0631 \u0639\u0644\u0649 \u0635\u0648\u0631 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062c\u0639\u064a\u0629"};</script><script>/* ===== تطبيق المراقبين: تحليل فقط، يعمل دون إنترنت ===== */
+</script><script>/* ===== تطبيق المراقبين: تحليل فقط، يعمل دون إنترنت ===== */
 const MODEL_URL = '__MODEL_URL__';   // رابط تطبيق التدريب (Apps Script) — منه يُسحب النموذج المعتمد
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const LEVEL = { 1: 'ضعيف جدًا', 2: 'ضعيف', 3: 'مقبول', 4: 'جيد', 5: 'جيد جدًا' };
@@ -401,7 +504,9 @@ function overlayOf(m) {
 }
 
 // ---------- model: published (cached) or built-in ----------
-function model() { const p = lsGet('mModel', null); return p ? p : { version: 0, model: BUILTIN }; }
+function model() { const p = lsGet('mModel', null); return p && p.model && p.model.feats && p.model.feats.length === Engine.FEATS.length ? p : { version: 0, model: null }; }
+const score = f => { const m = model().model; if (!m) { const e = Engine.ruleScore(f); const l = Math.max(1, Math.min(5, Math.round(e))); return { expected: e, p: [1, 2, 3, 4, 5].map(k => k === l ? 0.5 : 0.125) }; } return Engine.scoreWithModel(m, f); };
+const paper = () => lsGet('mPaper', 'A4');
 async function updateModel() {
   if (!MODEL_URL.startsWith('http') || !navigator.onLine) return;
   try {
@@ -411,7 +516,7 @@ async function updateModel() {
   } catch (e) { }
   ver();
 }
-function ver() { const m = model(); $('#ver').textContent = 'النموذج ' + (m.version ? 'v' + m.version + (m.publishedAt ? ' – ' + new Date(m.publishedAt).toLocaleDateString('ar') : '') : 'الأساسي'); }
+function ver() { const m = model(); $('#ver').textContent = m.version ? 'النموذج v' + m.version + (m.publishedAt ? ' – ' + new Date(m.publishedAt).toLocaleDateString('ar') : '') : 'قواعد أولية — بانتظار أول نموذج معتمد'; }
 function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
 
 // ---------- indicators (why this grade) ----------
@@ -423,6 +528,17 @@ const IND = [
 ];
 const indRows = f => IND.map(i => { const v = f[i.k], c = i.good(v) ? 'ok' : i.fair(v) ? 'mid' : 'bad'; return `<tr><td>${i.name}</td><td><span class="dot ${c}"></span>${i.show(v)}</td></tr>`; }).join('');
 
+function sizeMap(m) {
+  const c = document.createElement('canvas'); c.width = m.w; c.height = m.h; const g = c.getContext('2d');
+  const id = new ImageData(new Uint8ClampedArray(m.rgba), m.w, m.h), eq = a => Math.sqrt(4 * a / Math.PI);
+  const t1 = m.mm ? 1.0 / m.mm : 4, t2 = m.mm ? 3.0 / m.mm : 12;   // 1 mm / 3 mm
+  for (let i = 0; i < m.w * m.h; i++) { const o = i * 4; if (!m.core[i]) { id.data[o] *= 0.5; id.data[o + 1] *= 0.5; id.data[o + 2] *= 0.5; continue; }
+    const lb = m.plab[i]; if (!lb) continue; const d = eq(m.psz[lb]), col = d < t1 ? [40, 170, 255] : d < t2 ? [255, 200, 0] : [235, 40, 40];
+    for (let k = 0; k < 3; k++) id.data[o + k] = id.data[o + k] * 0.35 + col[k] * 0.65; }
+  g.putImageData(id, 0, 0); return c.toDataURL('image/jpeg', 0.6);
+}
+const shapeRows = sh => sh ? `<tr><td>قطر الرغيف</td><td>${sh.diameterCm ? fmt(sh.diameterCm) + ' سم' : '— (ورقة المعايرة غير ظاهرة)'}</td></tr><tr><td>الاستدارة</td><td>${Math.round(sh.roundness * 100)}%</td></tr><tr><td>متوسط حجم المسام</td><td>${sh.poreMm ? fmt(sh.poreMm, 2) + ' ملم' : '—'}</td></tr>` : '';
+
 // ---------- flow ----------
 let cur = null;
 function show(tab) { $$('.tab').forEach(t => t.hidden = t.id !== 'tab-' + tab); $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); ({ eval: renderEval, log: renderLog })[tab](); }
@@ -431,10 +547,11 @@ function renderEval() {
   if (!cur) {
     el.innerHTML = `<div class="card"><h2>تقييم عيّنة</h2>
       <label>المخبز<input id="e-bak" list="bl" value="${esc(st.bakery || '')}" placeholder="اسم المخبز"></label><datalist id="bl">${(st.bakeries || []).map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
+      <label>ورقة المعايرة<select id="e-paper"><option ${paper() === 'A4' ? 'selected' : ''}>A4</option><option ${paper() === 'A3' ? 'selected' : ''}>A3</option></select></label>
       <div class="row"><label>النوع<select id="e-type"><option value="line">خط إنتاج</option><option value="shelf">أرفف</option></select></label><label>الخط<input id="e-line" type="number" min="1" max="6" value="${st.line || 1}"></label></div>
-      <div class="hint"><b>ورقة A4 بيضاء</b> على سطح مستوٍ، والرغيف في منتصفها ووجهه الداخلي (الطبقة العليا) للأعلى. إضاءة <b>بيضاء علوية</b> بلا ظلال، دون فلاش. الجوال فوق الرغيف مباشرة وموازٍ للورقة، والرغيف يملأ معظم الإطار. صوّر ${LOAVES} أرغفة عشوائية من العيّنة، لا الأفضل.</div>
+      <div class="hint"><b>ورقة المعايرة</b> (A4 أو A3) على سطح مستوٍ، والرغيف في منتصفها دون أن يغطي المربعات السوداء أو المستطيل الرمادي ووجهه الداخلي (الطبقة العليا) للأعلى. إضاءة <b>بيضاء علوية</b> بلا ظلال، دون فلاش. الجوال فوق الرغيف مباشرة وموازٍ للورقة، والمربعات الأربعة ظاهرة في الصورة. صوّر ${LOAVES} أرغفة عشوائية من العيّنة، لا الأفضل.</div>
       <button class="primary" id="e-go">بدء</button></div>`;
-    $('#e-go').onclick = () => { const b = $('#e-bak').value.trim(); lsSet('mSet', { bakery: b, line: +$('#e-line').value, bakeries: b ? [...new Set([b, ...(st.bakeries || [])])].slice(0, 80) : (st.bakeries || []) }); cur = { ts: new Date().toISOString(), bakery: b, type: $('#e-type').value, line: +$('#e-line').value, ver: model().version, loaves: [] }; renderEval(); };
+    $('#e-go').onclick = () => { lsSet('mPaper', $('#e-paper').value); const b = $('#e-bak').value.trim(); lsSet('mSet', { bakery: b, line: +$('#e-line').value, bakeries: b ? [...new Set([b, ...(st.bakeries || [])])].slice(0, 80) : (st.bakeries || []) }); cur = { ts: new Date().toISOString(), bakery: b, type: $('#e-type').value, line: +$('#e-line').value, ver: model().version, loaves: [] }; renderEval(); };
     return;
   }
   const i = cur.loaves.length;
@@ -450,16 +567,18 @@ function renderEval() {
       $('#work').innerHTML = '<div class="spin">جارٍ التحليل…</div>'; await tick();
       try {
         const im = await loadFile(f), d = imgToData(im);
-        const r = Engine.analyze({ data: d.data, width: d.width, height: d.height }, resample);
+        const r = Engine.analyze({ data: d.data, width: d.width, height: d.height }, resample, { paper: paper() });
         if (!r.ok) { $('#work').innerHTML = `<div class="warn">${esc(r.reason)}. أعد التصوير.</div>`; return; }
-        const p = Engine.scoreWithModel(model().model, r.features), lvl = Math.max(1, Math.min(5, Math.round(p.expected))), conf = p.p[lvl - 1];
-        const loaf = { score: p.expected, lvl, conf, f: r.features, flags: r.flags, ov: overlayOf(r.maps) };
+        const p = score(r.features), lvl = Math.max(1, Math.min(5, Math.round(p.expected))), conf = p.p[lvl - 1];
+        const loaf = { score: p.expected, lvl, conf, f: r.features, flags: r.flags, ov: overlayOf(r.maps), sz: sizeMap(r.maps), shape: r.shape };
         $('#work').innerHTML = `${r.flags.length ? `<div class="warn">⚠️ ${r.flags.map(esc).join('، ')} — يُفضّل إعادة التصوير</div>` : ''}
           <div class="score s${lvl}">${LEVEL[lvl]}<small>${fmt(p.expected)} من 5 • ثقة ${conf >= 0.6 ? 'عالية' : conf >= 0.4 ? 'متوسطة' : 'منخفضة'}</small></div>
-          <img class="big" src="${loaf.ov}"><div class="legend"><span class="g">مسامات</span><span class="r">مناطق ملساء/كثيفة</span><span class="o">رطوبة</span></div>
-          <table class="kv">${indRows(r.features)}</table>
+          <img class="big" id="ov" src="${loaf.ov}"><div class="legend" id="lg"><span class="g">مسامات</span><span class="r">مناطق ملساء/كثيفة</span><span class="o">رطوبة</span></div>
+          <button class="ghost sm" id="tg">عرض المسام حسب الحجم</button>
+          <table class="kv">${indRows(r.features)}${shapeRows(r.shape)}</table>
           <button class="primary" id="ok">${i + 1 < LOAVES ? 'الرغيف التالي' : 'نتيجة العيّنة'}</button><button class="ghost" id="re">إعادة التصوير</button>`;
         $('label.cam').hidden = true;
+        let t = false; $('#tg').onclick = () => { t = !t; $('#ov').src = t ? loaf.sz : loaf.ov; $('#lg').innerHTML = t ? '<span class="b">صغيرة</span><span class="y">متوسطة</span><span class="r">كبيرة</span>' : '<span class="g">مسامات</span><span class="r">مناطق ملساء/كثيفة</span><span class="o">رطوبة</span>'; $('#tg').textContent = t ? 'عرض خريطة الجودة' : 'عرض المسام حسب الحجم'; };
         $('#ok').onclick = () => { cur.loaves.push(loaf); cur.loaves.length >= LOAVES ? summary() : renderEval(); };
         $('#re').onclick = () => renderEval();
       } catch (err) { $('#work').innerHTML = `<div class="warn">تعذّر تحليل الصورة: ${esc(err.message)}</div>`; }
@@ -479,10 +598,10 @@ function summary() {
     <div class="score s${lvl}">${fmt(final)}<small>${LEVEL[lvl]}</small></div><div class="muted center">${DESC[lvl]}</div>
     ${notes.length ? `<div class="warn">${notes.map(esc).join('<br>')}</div>` : ''}
     <div class="grid5">${L.map((l, k) => `<figure><img src="${l.ov}"><figcaption>${k + 1}: ${fmt(l.score)}</figcaption></figure>`).join('')}</div>
-    <table class="kv"><tr><td>متوسط الأرغفة</td><td>${fmt(mean, 2)}</td></tr><tr><td>أضعف رغيف</td><td>${fmt(mn, 2)}</td></tr><tr><td>التفاوت بين الأرغفة</td><td>${fmt(sd, 2)}</td></tr></table>
+    <table class="kv">${(() => { const d = L.map(l => l.shape && l.shape.diameterCm).filter(Boolean); return d.length ? `<tr><td>متوسط القطر</td><td>${fmt(Engine.mean(d))} سم (${fmt(Math.min(...d))}–${fmt(Math.max(...d))})</td></tr>` : ''; })()}<tr><td>متوسط الأرغفة</td><td>${fmt(mean, 2)}</td></tr><tr><td>أضعف رغيف</td><td>${fmt(mn, 2)}</td></tr><tr><td>التفاوت بين الأرغفة</td><td>${fmt(sd, 2)}</td></tr></table>
     <div class="muted center">${$('#ver').textContent}</div>
     <button class="primary" id="new">عيّنة جديدة</button></div>`;
-  const H = lsGet('mLog', []); H.unshift({ ts: cur.ts, bakery: cur.bakery, type: cur.type, line: cur.line, n: L.length, final, mean, min: mn, sd, ver: cur.ver, loaves: L.map(l => +l.score.toFixed(2)) }); lsSet('mLog', H.slice(0, 200));
+  const H = lsGet('mLog', []); H.unshift({ ts: cur.ts, bakery: cur.bakery, type: cur.type, line: cur.line, n: L.length, final, mean, min: mn, sd, ver: cur.ver, loaves: L.map(l => +l.score.toFixed(2)), diam: L.map(l => l.shape && l.shape.diameterCm ? +l.shape.diameterCm.toFixed(1) : null) }); lsSet('mLog', H.slice(0, 200));
   $('#new').onclick = () => { cur = null; renderEval(); };
 }
 function renderLog() {
