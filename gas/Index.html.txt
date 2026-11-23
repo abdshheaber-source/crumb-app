@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تدريب نموذج التجانس الداخلي</title><style>
+:root{--p:#005B8F;--p2:#007DBC;--g:#4B5563;--l:#F2F4F7;--ok:#1E8E3E;--bad:#C62828;--w:#E67E22}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--l);color:#1f2937;padding-bottom:76px}
+header{background:var(--p);color:#fff;padding:14px 16px;font-weight:700;font-size:17px;position:sticky;top:0;z-index:5}
+header small{display:block;font-weight:400;opacity:.85;font-size:12px}
+main{max-width:760px;margin:auto;padding:10px}
+.card{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
+h2{margin:0 0 10px;color:var(--p);font-size:18px}h3{color:var(--g);font-size:15px;margin:14px 0 8px}
+label{display:block;margin:8px 0;font-size:14px;color:var(--g)}input,select{display:block;width:100%;padding:11px;margin-top:4px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button,.cam{display:block;width:100%;padding:13px;margin:8px 0;border-radius:10px;border:0;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
+.primary,.cam{background:var(--p2);color:#fff}.ghost{background:#fff;color:var(--p);border:1px solid var(--p2)}.danger{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+button:disabled{opacity:.45}
+.cam{font-size:18px;padding:22px}
+.hint{background:#EAF4FB;border-right:4px solid var(--p2);padding:10px;border-radius:8px;font-size:13.5px;line-height:1.7;margin:8px 0}
+.warn{background:#FFF4E5;border-right:4px solid var(--w);padding:10px;border-radius:8px;font-size:14px;margin:8px 0}
+.muted{color:#6b7280;font-size:13px}.center{text-align:center}
+.spin{padding:30px;text-align:center;color:var(--p)}
+img.big{width:100%;border-radius:10px;margin:8px 0;display:block}
+.rate button{background:#fff;border:1px solid #d1d5db;color:#111;text-align:right;padding:10px 12px}
+.rate button small{display:block;font-weight:400;color:#6b7280;font-size:12.5px;margin-top:3px}
+.rate button:active{background:#EAF4FB}
+.progress{display:flex;gap:6px;margin:10px 0}.progress span{flex:1;height:6px;border-radius:3px;background:#e5e7eb}.progress .done{background:var(--ok)}.progress .now{background:var(--p2)}
+.legend{display:flex;gap:12px;font-size:12px;flex-wrap:wrap}.legend span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:middle}
+.legend .g:before{background:#28C846}.legend .r:before{background:#E63232}.legend .o:before{background:#FF8C00}
+.res{display:flex;justify-content:space-around;background:var(--l);border-radius:10px;padding:10px;margin:8px 0;font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.kv td{padding:6px 4px;border-bottom:1px solid #eef0f3}.kv td:last-child{text-align:left;font-weight:600;direction:ltr}
+.grid th,.grid td{border:1px solid #e5e7eb;padding:6px;text-align:center}.grid th{background:var(--p);color:#fff}
+.conf td.diag{background:#D9EAD3;font-weight:700}
+.score{text-align:center;font-size:54px;font-weight:800;margin:6px 0}.score small{display:block;font-size:18px}
+.s1,.s2{color:var(--bad)}.s3{color:var(--w)}.s4,.s5{color:var(--ok)}
+.pill{padding:2px 8px;border-radius:10px;background:var(--l);font-weight:700}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0}.grid5 img{width:100%;border-radius:6px}.grid5 figure{margin:0}.grid5 figcaption{font-size:11px;text-align:center}
+details{border-bottom:1px solid #eef0f3;padding:8px 0}summary{cursor:pointer;font-size:14px}
+.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0}.bar span{width:120px}.bar div{flex:1;background:#e5e7eb;height:10px;border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--p2)}.bar i.neg{background:var(--bad)}.bar b{width:70px;text-align:left;direction:ltr}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;border-top:1px solid #e5e7eb;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;margin:0;border-radius:0;background:none;color:var(--g);font-size:12px;padding:10px 2px;font-weight:600}nav button.on{color:var(--p);border-top:3px solid var(--p)}
+nav button b{display:block;font-size:20px}
+
+.sm{padding:6px;margin:0;font-size:13px}nav button{font-size:12px}#who{display:block;font-weight:400;opacity:.85;font-size:12px}</style></head>
+<body><header>تدريب نموذج التجانس الداخلي<span id="who">EMCC</span></header>
+<main></main>
+<nav hidden><button data-tab="sample"><b>📷</b>عيّنة</button><button data-tab="review"><b>🔍</b>تقييم الزملاء</button><button data-tab="me"><b>📊</b>أدائي</button><button data-tab="admin"><b>⚙️</b>المشرف</button></nav>
+<script>/* ===== Crumb analysis & statistics engine (pure JS, no DOM) ===== */
+const Engine = (() => {
+  // ---------- colour ----------
+  function toLab(rgba, n) {
+    const L = new Float32Array(n), A = new Float32Array(n), B = new Float32Array(n);
+    const lin = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const c = i / 255; lin[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    for (let i = 0; i < n; i++) {
+      const r = lin[rgba[4 * i]], g = lin[rgba[4 * i + 1]], b = lin[rgba[4 * i + 2]];
+      const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, y = 0.2126 * r + 0.7152 * g + 0.0722 * b, z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+      const fx = f(x), fy = f(y), fz = f(z);
+      L[i] = 116 * fy - 16; A[i] = 500 * (fx - fy); B[i] = 200 * (fy - fz);
+    }
+    return { L, A, B };
+  }
+  // ---------- filters ----------
+  function boxBlur(src, w, h, r) {
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h), d = 2 * r + 1;
+    for (let y = 0; y < h; y++) {
+      let s = 0; const o = y * w;
+      for (let x = -r; x <= r; x++) s += src[o + Math.min(w - 1, Math.max(0, x))];
+      for (let x = 0; x < w; x++) { tmp[o + x] = s / d; s += src[o + Math.min(w - 1, x + r + 1)] - src[o + Math.max(0, x - r)]; }
+    }
+    for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let y = -r; y <= r; y++) s += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+      for (let y = 0; y < h; y++) { out[y * w + x] = s / d; s += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; }
+    }
+    return out;
+  }
+  const gauss = (src, w, h, s) => { const r = Math.max(1, Math.round(s * 0.9)); return boxBlur(boxBlur(boxBlur(src, w, h, r), w, h, r), w, h, r); };
+  function minmax(src, w, h, r, isMax) { // separable square min/max filter
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h), op = isMax ? Math.max : Math.min;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = src[y * w + x]; for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r); k++) v = op(v, src[y * w + k]); tmp[y * w + x] = v; }
+    for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) { let v = tmp[y * w + x]; for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r); k++) v = op(v, tmp[k * w + x]); out[y * w + x] = v; }
+    return out;
+  }
+  function otsu(vals) {
+    let mn = Infinity, mx = -Infinity; for (const v of vals) { if (v < mn) mn = v; if (v > mx) mx = v; }
+    const bins = 256, hist = new Float64Array(bins), sc = (bins - 1) / (mx - mn || 1);
+    for (const v of vals) hist[Math.round((v - mn) * sc)]++;
+    let tot = vals.length, sum = 0; for (let i = 0; i < bins; i++) sum += i * hist[i];
+    let wB = 0, sB = 0, best = 0, th = 0;
+    for (let i = 0; i < bins; i++) { wB += hist[i]; if (!wB) continue; const wF = tot - wB; if (!wF) break; sB += i * hist[i]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best) { best = v; th = i; } }
+    return mn + th / sc;
+  }
+  function components(mask, w, h) { // 4-connected labelling; returns {lab, sizes}
+    const lab = new Int32Array(w * h), sizes = [0], st = new Int32Array(w * h);
+    let n = 0;
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i] || lab[i]) continue;
+      n++; let sp = 0, cnt = 0; st[sp++] = i; lab[i] = n;
+      while (sp) { const p = st[--sp]; cnt++; const x = p % w, y = (p / w) | 0;
+        if (x > 0 && mask[p - 1] && !lab[p - 1]) { lab[p - 1] = n; st[sp++] = p - 1; }
+        if (x < w - 1 && mask[p + 1] && !lab[p + 1]) { lab[p + 1] = n; st[sp++] = p + 1; }
+        if (y > 0 && mask[p - w] && !lab[p - w]) { lab[p - w] = n; st[sp++] = p - w; }
+        if (y < h - 1 && mask[p + w] && !lab[p + w]) { lab[p + w] = n; st[sp++] = p + w; } }
+      sizes.push(cnt);
+    }
+    return { lab, sizes };
+  }
+  function fillHoles(mask, w, h) {
+    const inv = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) inv[i] = mask[i] ? 0 : 1;
+    const { lab } = components(inv, w, h), edge = new Set();
+    for (let x = 0; x < w; x++) { edge.add(lab[x]); edge.add(lab[(h - 1) * w + x]); }
+    for (let y = 0; y < h; y++) { edge.add(lab[y * w]); edge.add(lab[y * w + w - 1]); }
+    const out = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) out[i] = mask[i] || !edge.has(lab[i]) ? 1 : 0;
+    return out;
+  }
+  const erode = (m, w, h, r) => { const f = new Float32Array(m); const o = minmax(f, w, h, r, false); const u = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) u[i] = o[i] > 0.5; return u; };
+  const dilate = (m, w, h, r) => { const f = new Float32Array(m); const o = minmax(f, w, h, r, true); const u = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) u[i] = o[i] > 0.5; return u; };
+
+  // ---------- segmentation: single loaf on a light board ----------
+  function segment(lab, w, h) {
+    const bs = gauss(lab.B, w, h, 2), vals = [];
+    for (let i = 0; i < w * h; i += 3) vals.push(bs[i]);
+    const th = otsu(vals);
+    let m = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) m[i] = bs[i] > th && lab.L[i] > 35 ? 1 : 0;
+    m = dilate(erode(m, w, h, 2), w, h, 2);
+    const { lab: cl, sizes } = components(m, w, h);
+    let best = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > (sizes[best] || 0)) best = i;
+    const out = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) out[i] = cl[i] === best ? 1 : 0;
+    return fillHoles(out, w, h);
+  }
+
+  // ---------- full analysis of one loaf image ----------
+  // img = {data: RGBA Uint8ClampedArray, width, height}; resample: function(img, box, maxDim) -> img (provided by caller)
+  function analyze(img, resample) {
+    // pass 1: low-res segmentation to locate the loaf
+    const small = resample(img, null, 360);
+    const sl = toLab(small.data, small.width * small.height);
+    const sm = segment(sl, small.width, small.height);
+    let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, area = 0;
+    for (let y = 0; y < small.height; y++) for (let x = 0; x < small.width; x++) if (sm[y * small.width + x]) { area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const fracArea = area / (small.width * small.height);
+    const q = { loafArea: fracArea };
+    if (area < 50) return { ok: false, reason: 'لم يتم العثور على رغيف في الصورة', quality: q };
+    const s = img.width / small.width, pad = 6;
+    const box = { x: Math.max(0, (x0 - pad) * s), y: Math.max(0, (y0 - pad) * s), w: Math.min(img.width, (x1 + pad) * s) - Math.max(0, (x0 - pad) * s), h: Math.min(img.height, (y1 + pad) * s) - Math.max(0, (y0 - pad) * s) };
+    // pass 2: normalised crop (loaf ~ 600 px) => scale-invariant features
+    const c = resample(img, box, 600), w = c.width, h = c.height, n = w * h;
+    const lab = toLab(c.data, n);
+    let mask = segment(lab, w, h);
+    const D = Math.sqrt(mask.reduce((a, b) => a + b, 0) * 4 / Math.PI);       // equivalent diameter (px)
+    const rim = Math.max(3, Math.round(D * 0.035));
+    const core = erode(mask, w, h, rim);
+    let N = 0; for (let i = 0; i < n; i++) N += core[i];
+    if (N < 2000) return { ok: false, reason: 'الرغيف صغير جداً في الصورة — قرّب الجوال', quality: q };
+    // illumination-normalised lightness
+    const bg = gauss(lab.L, w, h, Math.max(8, D / 12));
+    const Ln = new Float32Array(n); for (let i = 0; i < n; i++) Ln[i] = lab.L[i] / (bg[i] + 1e-3);
+    // quality metrics
+    let sL = 0, clip = 0, lapV = 0, lapM = 0;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (!core[i]) continue; sL += lab.L[i]; if (lab.L[i] > 97) clip++; const lp = 4 * lab.L[i] - lab.L[i - 1] - lab.L[i + 1] - lab.L[i - w] - lab.L[i + w]; lapM += lp; lapV += lp * lp; }
+    q.meanL = sL / N; q.clipped = clip / N; lapM /= N; q.sharpness = lapV / N - lapM * lapM;
+    // pores: morphological black-hat at the pore scale
+    const k = Math.max(2, Math.round(D / 85));
+    const Ls = new Float32Array(n); for (let i = 0; i < n; i++) Ls[i] = Ln[i] * 120;
+    const close = minmax(minmax(Ls, w, h, k, true), w, h, k, false);
+    const pore = new Uint8Array(n); let pc = 0;
+    for (let i = 0; i < n; i++) { const bh = close[i] - Ls[i]; pore[i] = core[i] && bh > 14 ? 1 : 0; pc += pore[i]; }
+    const poreFrac = pc / N;
+    const { sizes: ps } = components(pore, w, h); const pSizes = ps.slice(1).filter(v => v >= 2);
+    const poreDensity = pSizes.length / N * 10000;                              // pores per 10k px
+    const pm = pSizes.length ? pSizes.reduce((a, b) => a + b, 0) / pSizes.length : 0;
+    const psd = pSizes.length ? Math.sqrt(pSizes.reduce((a, b) => a + (b - pm) ** 2, 0) / pSizes.length) : 0;
+    const poreSizeCV = pm ? psd / pm : 0;
+    // local texture (std) -> smooth fraction
+    const r2 = Math.max(3, Math.round(D / 60));
+    const mu = boxBlur(Ln, w, h, r2), mu2 = boxBlur(Ln.map(v => v * v), w, h, r2);
+    let smooth = 0, texSum = 0; const tex = new Float32Array(n);
+    for (let i = 0; i < n; i++) { if (!core[i]) continue; const sd = Math.sqrt(Math.max(0, mu2[i] - mu[i] * mu[i])); tex[i] = sd; texSum += sd; if (sd < 0.018) smooth++; }
+    const smoothFrac = smooth / N, texMean = texSum / N;
+    // wet / grey patches: darker AND greyer than loaf median, large blobs only
+    const Lb = gauss(lab.L, w, h, Math.max(4, D / 40)), Bb = gauss(lab.B, w, h, Math.max(4, D / 40));
+    const lv = [], bv = []; for (let i = 0; i < n; i += 2) if (core[i]) { lv.push(Lb[i]); bv.push(Bb[i]); }
+    lv.sort((a, b) => a - b); bv.sort((a, b) => a - b);
+    const Lmed = lv[lv.length >> 1], Bmed = bv[bv.length >> 1];
+    const wetC = new Uint8Array(n); for (let i = 0; i < n; i++) wetC[i] = core[i] && Lb[i] < Lmed - 12 && Bb[i] < Bmed - 4 ? 1 : 0;
+    const { lab: wl, sizes: ws } = components(wetC, w, h);
+    const wet = new Uint8Array(n); let wc = 0;
+    for (let i = 0; i < n; i++) if (wl[i] && ws[wl[i]] > 0.01 * N) { wet[i] = 1; wc++; }
+    const wetFrac = wc / N;
+    // spatial uniformity: CV of pore fraction over a 5x5 grid
+    let bx0 = w, by0 = h, bx1 = 0, by1 = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (core[y * w + x]) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    const G = 5, cells = [];
+    for (let gy = 0; gy < G; gy++) for (let gx = 0; gx < G; gx++) {
+      let c1 = 0, c2 = 0; const ya = by0 + ((by1 - by0) * gy / G) | 0, yb = by0 + ((by1 - by0) * (gy + 1) / G) | 0, xa = bx0 + ((bx1 - bx0) * gx / G) | 0, xb = bx0 + ((bx1 - bx0) * (gx + 1) / G) | 0;
+      for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) { const i = y * w + x; if (core[i]) { c1++; c2 += pore[i]; } }
+      if (c1 > 0.7 * (yb - ya) * (xb - xa)) cells.push(c2 / c1);
+    }
+    const cm = cells.reduce((a, b) => a + b, 0) / (cells.length || 1);
+    const gridCV = cm < 0.005 ? 1 : cells.length > 3 ? Math.sqrt(cells.reduce((a, b) => a + (b - cm) ** 2, 0) / cells.length) / (cm + 1e-6) : 0;
+    // lacunarity of pore mask (gliding box, integral image)
+    const ii = new Float64Array((w + 1) * (h + 1));
+    for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += pore[y * w + x]; ii[(y + 1) * (w + 1) + x + 1] = ii[y * (w + 1) + x + 1] + row; } }
+    const bxs = Math.max(8, Math.round(D / 12)); let m1 = 0, m2 = 0, nb = 0;
+    for (let y = 0; y + bxs < h; y += 2) for (let x = 0; x + bxs < w; x += 2) {
+      if (!core[(y + (bxs >> 1)) * w + x + (bxs >> 1)] || !core[y * w + x] || !core[(y + bxs) * w + x + bxs]) continue;
+      const M = ii[(y + bxs) * (w + 1) + x + bxs] - ii[y * (w + 1) + x + bxs] - ii[(y + bxs) * (w + 1) + x] + ii[y * (w + 1) + x];
+      m1 += M; m2 += M * M; nb++;
+    }
+    const lacunarity = nb && m1 ? Math.min(50, (m2 / nb) / ((m1 / nb) ** 2)) : 50;
+    // GLCM (16 grey levels, distance ~ pore scale, 4 directions)
+    const Q = 16; let qmn = Infinity, qmx = -Infinity;
+    for (let i = 0; i < n; i++) if (core[i]) { if (Ln[i] < qmn) qmn = Ln[i]; if (Ln[i] > qmx) qmx = Ln[i]; }
+    const qv = new Uint8Array(n); for (let i = 0; i < n; i++) qv[i] = Math.min(Q - 1, Math.max(0, Math.floor((Ln[i] - qmn) / (qmx - qmn + 1e-6) * Q)));
+    const P = new Float64Array(Q * Q); let pt = 0; const dd = Math.max(1, k);
+    for (const [dx, dy] of [[dd, 0], [0, dd], [dd, dd], [dd, -dd]])
+      for (let y = Math.max(0, -dy); y < h - Math.max(0, dy); y++) for (let x = 0; x < w - dx; x++) { const i = y * w + x, j = (y + dy) * w + x + dx; if (core[i] && core[j]) { P[qv[i] * Q + qv[j]]++; P[qv[j] * Q + qv[i]]++; pt += 2; } }
+    let con = 0, hom = 0, ene = 0, ent = 0;
+    for (let a = 0; a < Q; a++) for (let b = 0; b < Q; b++) { const p = P[a * Q + b] / (pt || 1); if (!p) continue; con += p * (a - b) ** 2; hom += p / (1 + Math.abs(a - b)); ene += p * p; ent -= p * Math.log2(p); }
+    const features = { poreFrac, poreDensity, poreSizeCV, smoothFrac, texMean, wetFrac, gridCV, lacunarity, glcmContrast: con, glcmHomog: hom, glcmEnergy: ene, glcmEntropy: ent };
+    // quality flags
+    const flags = [];
+    if (q.sharpness < 2.5) flags.push('الصورة غير حادة (مهزوزة)');
+    if (q.meanL < 55) flags.push('الإضاءة ضعيفة');
+    if (q.clipped > 0.08) flags.push('إضاءة زائدة / انعكاس');
+    if (fracArea < 0.12) flags.push('الرغيف صغير في الصورة — قرّب الجوال');
+    if (fracArea > 0.85) flags.push('الرغيف يتجاوز إطار الصورة');
+    return { ok: true, features, quality: q, flags, maps: { w, h, core, pore, wet, smoothMap: tex, rgba: c.data } };
+  }
+
+  // ---------- default rule-based score (before training) ----------
+  const cl = (v, a, b) => Math.max(0, Math.min(1, (v - a) / (b - a)));
+  function ruleScore(f) {
+    let s = 1 + 2 * cl(f.poreFrac, 0.04, 0.18) + 1 * cl(0.45 - f.smoothFrac, 0, 0.35) + 1 * cl(0.6 - f.gridCV, 0, 0.4) - 2 * cl(f.wetFrac, 0.05, 0.2);
+    return Math.max(1, Math.min(5, s));
+  }
+
+  // ---------- statistics ----------
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(1, a.length - 1)); };
+  const median = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  function bootstrapCI(a, B = 2000, seed = 7) {
+    let s = seed; const rnd = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    const ms = []; for (let b = 0; b < B; b++) { let t = 0; for (let i = 0; i < a.length; i++) t += a[(rnd() * a.length) | 0]; ms.push(t / a.length); }
+    ms.sort((x, y) => x - y); return [ms[Math.floor(0.025 * B)], ms[Math.floor(0.975 * B)]];
+  }
+  function weightedKappa(x, y, K = 5) { // quadratic weighted kappa, ratings 1..K
+    const O = Array.from({ length: K }, () => new Float64Array(K)), hx = new Float64Array(K), hy = new Float64Array(K);
+    for (let i = 0; i < x.length; i++) { O[x[i] - 1][y[i] - 1]++; hx[x[i] - 1]++; hy[y[i] - 1]++; }
+    const n = x.length; let num = 0, den = 0;
+    for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) { const wgt = (i - j) ** 2 / (K - 1) ** 2; num += wgt * O[i][j]; den += wgt * hx[i] * hy[j] / n; }
+    return den ? 1 - num / den : 1;
+  }
+  function icc21(M) { // M: rows=items, cols=raters (complete) -> ICC(2,1)
+    const n = M.length, k = M[0].length, g = mean(M.flat());
+    const rm = M.map(r => mean(r)), cm = Array.from({ length: k }, (_, j) => mean(M.map(r => r[j])));
+    let ssr = 0, ssc = 0, sst = 0; rm.forEach(v => ssr += k * (v - g) ** 2); cm.forEach(v => ssc += n * (v - g) ** 2); M.flat().forEach(v => sst += (v - g) ** 2);
+    const sse = sst - ssr - ssc, msr = ssr / (n - 1), msc = ssc / (k - 1), mse = sse / ((n - 1) * (k - 1));
+    return (msr - mse) / (msr + (k - 1) * mse + k * (msc - mse) / n);
+  }
+
+  // ---------- ordinal logistic regression (cumulative logit), Adam + L2 ----------
+  const sig = z => 1 / (1 + Math.exp(-z));
+  function fitOrdinal(X, y, K = 5, opt = {}) {
+    const d = X[0].length, lam = opt.l2 ?? 0.05, it = opt.iters ?? 600, lr = opt.lr ?? 0.05;
+    // balanced sample weights: each grade contributes equally (avoids bias to the majority grade)
+    const cnt = {}; y.forEach(c => cnt[c] = (cnt[c] || 0) + 1); const nc = Object.keys(cnt).length;
+    const sw = opt.balanced === false ? null : y.map(c => y.length / (nc * cnt[c]));
+    let w = new Float64Array(d), t0 = -2, dl = new Float64Array(K - 2).fill(Math.log(1.2));
+    const pars = () => { const th = [t0]; for (let j = 0; j < K - 2; j++) th.push(th[j] + Math.exp(dl[j])); return th; };
+    const P = d + 1 + (K - 2), m = new Float64Array(P), v = new Float64Array(P);
+    for (let t = 1; t <= it; t++) {
+      const th = pars(), gw = new Float64Array(d), gth = new Float64Array(K - 1);
+      for (let i = 0; i < X.length; i++) {
+        let eta = 0; for (let j = 0; j < d; j++) eta += w[j] * X[i][j];
+        const c = y[i] - 1; // class 0..K-1
+        const Fu = c < K - 1 ? sig(th[c] - eta) : 1, Fl = c > 0 ? sig(th[c - 1] - eta) : 0;
+        const p = Math.max(1e-9, Fu - Fl), fu = c < K - 1 ? Fu * (1 - Fu) : 0, fl = c > 0 ? Fl * (1 - Fl) : 0;
+        const wi = sw ? sw[i] : 1, dEta = wi * (fu - fl) / p; // d(-logp)/d eta (class-balanced)
+        for (let j = 0; j < d; j++) gw[j] += dEta * X[i][j];
+        if (c < K - 1) gth[c] -= wi * fu / p; if (c > 0) gth[c - 1] += wi * fl / p;
+      }
+      for (let j = 0; j < d; j++) gw[j] = gw[j] / X.length + lam * w[j];
+      // chain rule to t0, dl
+      const g = new Float64Array(P); for (let j = 0; j < d; j++) g[j] = gw[j];
+      let acc = 0; for (let j = K - 2; j >= 0; j--) { acc += gth[j] / X.length; if (j === 0) g[d] = acc; else g[d + j] = acc * Math.exp(dl[j - 1]); }
+      for (let j = 0; j < P; j++) { m[j] = 0.9 * m[j] + 0.1 * g[j]; v[j] = 0.999 * v[j] + 0.001 * g[j] * g[j]; const st = lr * (m[j] / (1 - 0.9 ** t)) / (Math.sqrt(v[j] / (1 - 0.999 ** t)) + 1e-8);
+        if (j < d) w[j] -= st; else if (j === d) t0 -= st; else dl[j - d - 1] -= st; }
+    }
+    return { w: Array.from(w), th: pars(), K };
+  }
+  function predictOrdinal(mdl, x) {
+    let eta = 0; for (let j = 0; j < x.length; j++) eta += mdl.w[j] * x[j];
+    const F = mdl.th.map(t => sig(t - eta)), p = []; let prev = 0;
+    for (let k = 0; k < mdl.K; k++) { const cur = k < mdl.K - 1 ? F[k] : 1; p.push(cur - prev); prev = cur; }
+    const ev = p.reduce((a, pk, k) => a + pk * (k + 1), 0);
+    let mode = 0; p.forEach((v, k) => { if (v > p[mode]) mode = k; });
+    return { p, expected: ev, cls: mode + 1 };
+  }
+  const FEATS = ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy'];
+  function standardise(rows) {
+    const mu = FEATS.map(f => mean(rows.map(r => r[f]))), sg = FEATS.map((f, j) => sd(rows.map(r => r[f])) || 1);
+    return { mu, sg, X: rows.map(r => FEATS.map((f, j) => (r[f] - mu[j]) / sg[j])) };
+  }
+  function trainModel(rows, labels, folds = 5) {
+    const { mu, sg, X } = standardise(rows), n = X.length;
+    // stratified fold assignment
+    const fold = new Array(n), byCls = {}; labels.forEach((c, i) => (byCls[c] = byCls[c] || []).push(i));
+    Object.values(byCls).forEach(ix => ix.forEach((i, k) => fold[i] = k % folds));
+    const pred = new Array(n);
+    for (let f = 0; f < folds; f++) {
+      const tr = [], te = []; for (let i = 0; i < n; i++) (fold[i] === f ? te : tr).push(i);
+      if (!te.length || tr.length < 10) continue;
+      const m = fitOrdinal(tr.map(i => X[i]), tr.map(i => labels[i]));
+      te.forEach(i => pred[i] = predictOrdinal(m, X[i]).cls);
+    }
+    const ok = pred.map((p, i) => p != null ? i : -1).filter(i => i >= 0);
+    const yt = ok.map(i => labels[i]), yp = ok.map(i => pred[i]);
+    const conf = Array.from({ length: 5 }, () => new Array(5).fill(0)); yt.forEach((t, i) => conf[t - 1][yp[i] - 1]++);
+    const metrics = ok.length ? { n: ok.length, accuracy: mean(yt.map((t, i) => +(t === yp[i]))), within1: mean(yt.map((t, i) => +(Math.abs(t - yp[i]) <= 1))), mae: mean(yt.map((t, i) => Math.abs(t - yp[i]))), qwk: weightedKappa(yt, yp), confusion: conf,
+      recallPoor: (() => { const idx = yt.map((t, i) => t <= 2 ? i : -1).filter(i => i >= 0); return idx.length ? mean(idx.map(i => +(yp[i] <= 2))) : null; })() } : null;
+    const final = fitOrdinal(X, labels);
+    const importance = FEATS.map((f, j) => ({ f, w: final.w[j] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
+    return { model: { ...final, mu, sg, feats: FEATS, trainedAt: Date.now(), n }, metrics, importance };
+  }
+  function scoreWithModel(model, f) {
+    const x = model.feats.map((k, j) => (f[k] - model.mu[j]) / model.sg[j]);
+    return predictOrdinal(model, x);
+  }
+  return { analyze, ruleScore, trainModel, scoreWithModel, bootstrapCI, weightedKappa, icc21, mean, sd, median, FEATS };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+</script>
+<script>const REF = {"model":{"w":[-0.11686,0.58554,-0.04288,-0.99598,-0.06824,-0.18206,-0.68203,-0.29593,-0.1928,-0.29563,-0.11821,-0.41269],"th":[-9.10961,-2.71891,-0.09558,1.7595],"K":5,"mu":[0.13998,28.00706,2.86241,0.13631,0.05917,0.00011,0.58715,5.72397,2.0328,0.64875,0.07304,4.80239],"sg":[0.16034,25.78625,3.31174,0.20963,0.03776,0.00146,0.38872,10.04314,1.18303,0.08322,0.03992,0.65032],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"trainedAt":1795449187507,"n":187,"builtin":true,"label":"معايَر على صور الإدارة المرجعية"},"rows":[[0.00118,0.52572,1.01451,0.55147,0.01997,0,1,23.80032,0.76466,0.76399,0.101,4.39205,2],[0.00292,0.94093,1.21473,0.56895,0.02089,0,1,14.04589,0.63905,0.79758,0.14858,3.95497,2],[0.00275,0.51502,1.01947,0.53645,0.01988,0,1,16.57819,0.76958,0.7558,0.10899,4.34305,2],[0.00078,0.43101,1.27269,0.57464,0.01991,0,1,22.92402,0.65665,0.78743,0.11557,4.24442,2],[0.00102,0.48951,0.95964,0.4884,0.0213,0,1,20.68624,0.61406,0.7754,0.10003,4.19908,2],[0.01485,3.62684,1.32761,0.38732,0.02809,0,1.12835,4.85723,0.82287,0.77969,0.11823,3.95275,2],[0.0023,0.47822,1.5209,0.59552,0.01905,0,1,26.79127,0.77967,0.76969,0.11206,4.22697,2],[0.00692,1.38364,1.4284,0.49671,0.02401,0,1.48991,8.95456,1.05961,0.74199,0.10503,4.31953,2],[0.01579,1.24425,1.20177,0.47971,0.02742,0,1.68742,9.8195,0.56225,0.85335,0.2605,3.08238,2],[0.00738,1.34461,1.13592,0.51382,0.02181,0,1.94431,15.57903,0.6386,0.79707,0.15473,3.82732,2],[0.00183,0.37436,0.90896,0.64247,0.01804,0,1,50,0.81198,0.75863,0.13617,4.18443,2],[0.00688,1.12576,1.69003,0.48093,0.02365,0,1.66956,14.52517,0.6872,0.78546,0.14532,3.85309,2],[0.00341,1.06846,1.40294,0.51652,0.02119,0,1,16.3602,0.80225,0.75329,0.11047,4.25949,2],[0.00054,0.40106,0.71512,0.6071,0.01934,0,1,20.61126,0.7864,0.75805,0.13425,4.21321,2],[0.00159,0.53792,1.75975,0.61612,0.01904,0,1,24.78013,0.65442,0.78345,0.146,3.95652,2],[0.00912,2.74016,1.92777,0.31369,0.02784,0,1.42108,6.24845,0.76067,0.76673,0.1109,4.09479,2],[0.00506,0.62093,1.91658,0.51379,0.02256,0,1,50,0.91504,0.75489,0.10313,4.2563,2],[0.00145,0.59275,1.15487,0.58152,0.01938,0,1,23.43764,0.66186,0.77418,0.10424,4.14411,2],[0,0,0,0.69478,0.01525,0,1,50,0.53514,0.7954,0.13884,4.06792,2],[0.00065,0.46684,1.10341,0.61815,0.01836,0,1,26.42997,0.74338,0.75753,0.12101,4.27161,2],[3e-05,0.04913,0,0.67336,0.01637,0,1,50,0.6147,0.78153,0.16697,3.9031,2],[0.00157,1.08455,2.07356,0.51296,0.02096,0,1,19.11765,0.64746,0.76054,0.11387,3.9762,2],[0.00599,0.91463,2.04464,0.57128,0.02008,0,2.1608,10.42853,0.63688,0.80566,0.16551,3.88087,2],[0.00604,4.30161,1.28443,0.36971,0.0247,0,0.79083,4.06552,0.84063,0.74907,0.12422,4.17889,2],[0.04896,11.24147,1.83869,0.17129,0.03877,0,0.81439,2.7274,1.51872,0.68514,0.09133,4.407,3],[0.0608,16.86274,1.30884,0.05067,0.04281,0,0.75726,1.88679,1.98862,0.63622,0.0716,4.74829,3],[0.0422,6.75765,2.02094,0.26956,0.03608,0,1.26022,3.94018,1.43655,0.71946,0.11879,4.14116,3],[0.04066,10.63228,1.6699,0.14925,0.03835,0,1.01166,2.55215,1.68475,0.66915,0.0904,4.57014,3],[0.02643,5.71749,1.4681,0.25535,0.0319,0,0.80893,3.2445,1.45376,0.6974,0.08453,4.5451,3],[0.10102,17.02582,2.04033,0.05703,0.04854,0,0.43452,1.68923,1.91582,0.6572,0.07918,4.62817,3],[0.09038,22.63984,1.80088,0.03659,0.04638,0,0.52786,1.57958,1.73371,0.65388,0.07666,4.57943,3],[0.04169,14.42676,1.39315,0.07571,0.03979,0,0.54352,1.77722,1.85856,0.64626,0.06923,4.81569,3],[0.04908,10.92453,1.40096,0.223,0.0385,0,0.81225,2.43288,1.78175,0.68557,0.10021,4.6168,3],[0.03292,10.19134,1.55101,0.11523,0.04011,0,0.81053,2.59531,1.33519,0.69735,0.09281,4.36038,3],[0.11292,17.12691,1.94778,0.01599,0.05547,0,0.65558,1.74584,2.353,0.62724,0.05493,5.01161,3],[0.09825,15.53368,2.30481,0.06229,0.04768,0,0.61895,1.88581,1.43488,0.69406,0.11518,4.1157,3],[0.06123,16.02882,1.41667,0.0262,0.0451,0,0.53674,1.70933,1.88074,0.64391,0.06982,4.74119,3],[0.06585,12.13197,1.42629,0.13175,0.04132,0,0.56951,1.95024,1.87029,0.66624,0.08461,4.65996,3],[0.0262,8.59533,1.20119,0.07783,0.03928,0,1.0579,2.76476,1.61314,0.65663,0.05309,5.02534,3],[0.16856,19.30956,2.19412,0.00303,0.07423,0,0.39648,1.3213,2.34436,0.62165,0.04637,5.1417,3],[0.13323,19.38975,2.22242,0.00816,0.06614,0,0.46456,1.42831,3.07307,0.5876,0.03674,5.55002,3],[0.09825,17.22509,2.11767,0.10722,0.04756,0,0.68637,1.82019,1.52431,0.68388,0.09163,4.31233,3],[0.03063,9.97962,1.77185,0.09745,0.03852,0,0.81774,2.65169,1.48767,0.66953,0.06675,4.74167,3],[0.01023,3.49261,1.33612,0.21295,0.03006,0,0.69923,4.56553,1.29337,0.68358,0.07844,4.59982,3],[0.00036,0.19757,0,0.41166,0.02421,0,1,42.45123,0.96289,0.71807,0.05807,4.96408,3],[0.00206,0.76391,1.26641,0.54155,0.02098,0,1,14.63361,0.75275,0.76512,0.12276,4.20966,3],[0,0,0,0.55259,0.02022,0,1,50,0.94308,0.72592,0.07584,4.70809,3],[0.00207,0.97196,0.98019,0.43632,0.02418,0,1,16.20189,0.87169,0.74355,0.10024,4.43413,3],[0.00169,0.80541,1.05116,0.47454,0.0225,0,1,12.42358,0.54498,0.79068,0.1477,3.68559,3],[0.00044,0.44299,0.46081,0.52393,0.02015,0,1,12.02658,0.86948,0.73291,0.10377,4.47714,3],[0.0006,0.23985,0.99537,0.53191,0.02048,0,1,30.48873,0.72147,0.75466,0.10599,4.18288,3],[0.0018,0.95604,0.92966,0.4345,0.02395,0,1,8.40231,1.0322,0.71372,0.08042,4.68966,3],[0.00411,1.28051,0.93786,0.48766,0.02207,0,1,9.3355,0.96504,0.72876,0.0839,4.54213,3],[0.01821,4.00873,1.46363,0.20462,0.03279,0,1.26531,4.42834,1.12496,0.72065,0.09696,4.30164,3],[0.00079,0.69436,1.37138,0.376,0.02428,0,1,19.12053,1.15209,0.68608,0.05834,4.97589,3],[0.00213,0.50729,1.30976,0.44048,0.024,0,1,27.86636,0.5937,0.79084,0.15436,3.71052,3],[0.43683,28.8459,5.89432,0,0.11133,0,0.11919,1.05625,4.92975,0.49385,0.02019,6.09246,3],[0.34905,30.10952,5.26304,0,0.10767,0,0.2782,1.12747,3.27382,0.55391,0.03066,5.59028,3],[0.20699,34.60871,2.59808,0,0.0766,0,0.48089,1.34147,3.13225,0.55792,0.03046,5.59377,3],[0.18818,28.59535,1.96193,0.00204,0.07256,0,0.53306,1.34879,2.99823,0.56776,0.03416,5.49055,3],[0.50812,17.76467,12.62327,0,0.11196,0,0.24845,1.08425,4.526,0.50472,0.02445,5.83423,3],[0.29988,47.55259,2.97997,0,0.0826,0,0.26535,1.10815,1.75908,0.62215,0.05582,4.69216,3],[0.32501,46.23562,5.74241,0,0.09066,0,0.34422,1.15366,2.88973,0.56852,0.03743,5.35133,3],[0.18157,31.89207,3.39852,0.00363,0.06477,0,0.67962,1.58654,3.41735,0.55597,0.03422,5.54483,3],[0.41899,23.74641,7.83891,0,0.10328,0,0.19395,1.06358,4.02741,0.51554,0.02725,5.71928,3],[0.28984,44.39248,5.05969,0,0.08412,0.01991,0.4046,1.21406,2.25752,0.6054,0.05292,4.92138,3],[0.39959,31.934,6.64281,0,0.12266,0,0.25624,1.09157,4.37097,0.51899,0.02537,5.86073,3],[0.18771,25.44004,2.29758,0.011,0.0684,0,0.62152,1.49244,2.94382,0.58258,0.03528,5.5117,3],[0.10956,44.73127,1.54365,0.00014,0.05289,0,0.50588,1.33707,2.06723,0.60891,0.05041,4.94514,4],[0.04355,23.15607,1.35015,0.00265,0.04458,0,0.41451,1.56122,1.63836,0.63418,0.05558,4.81081,4],[0.16897,43.53444,2.28317,5e-05,0.06109,0,0.46557,1.28601,2.72104,0.58844,0.04854,5.06753,4],[0.12179,44.5207,1.93899,0.00567,0.05141,0,0.46043,1.31383,1.25596,0.69004,0.10784,4.01,4],[0.06195,21.65652,1.83283,0.03483,0.0447,0,0.53709,1.80598,1.46863,0.67265,0.07909,4.46123,4],[0.09894,33.4074,1.79411,0.00374,0.052,0,0.82158,1.82298,1.70541,0.65106,0.07254,4.51734,4],[0.05825,21.13433,1.51979,0.04348,0.04215,0,0.6386,1.7602,2.28449,0.61912,0.05349,5.05827,4],[0.03802,18.72799,1.27265,0.02179,0.04247,0,0.61435,1.86503,2.51154,0.59669,0.04247,5.32291,4],[0.33678,29.2875,3.84606,8e-05,0.11422,0,0.26012,1.17216,2.97102,0.57057,0.03136,5.45303,4],[0.33656,28.18807,14.24817,0.0003,0.09319,0,0.51225,1.30026,2.80284,0.59423,0.03845,5.30528,4],[0.50251,15.81223,9.45203,0,0.13295,0,0.21602,1.06901,4.9347,0.50102,0.02125,5.99961,4],[0.68317,10.65201,13.24271,0.00014,0.19771,0,0.21592,1.05227,4.01828,0.53563,0.03077,5.56108,4],[0.27821,26.03705,4.34014,0.00762,0.09085,0,0.53408,1.51767,3.66922,0.57777,0.03536,5.62047,4],[0.30457,31.59685,4.8026,0.00311,0.10316,0,0.53566,1.32164,2.11787,0.64934,0.06593,4.72646,4],[0.55077,17.62301,15.63881,0.00018,0.14811,0,0.28534,1.08934,5.00068,0.50722,0.02589,5.85265,4],[0.58496,12.04303,13.32453,0,0.16392,0,0.0718,1.03348,4.56928,0.51049,0.02235,5.93484,4],[0.4113,28.53675,8.11209,0.0036,0.12645,0,0.23944,1.12246,3.18928,0.56489,0.03389,5.44183,4],[0.45368,24.50996,4.87822,0,0.13662,0,0.17402,1.07119,4.64978,0.50856,0.02435,5.87706,4],[0.48266,38.09595,6.97656,0,0.11669,0,0.12428,1.04068,4.46159,0.50794,0.02554,5.84325,4],[0.34327,93.93987,1.64363,0,0.09541,0,1,1.05477,3.73301,0.52731,0.03058,5.58902,4],[0.11601,77.90482,1.26485,0,0.0766,0,0,1.4063,2.89548,0.56722,0.03052,5.56242,4],[0.19427,105.722,1.44829,0.00023,0.08061,0,1,1.13597,3.10492,0.55503,0.03466,5.3925,4],[0.24997,76.58474,1.72798,0,0.08243,0,0.14568,1.12911,4.28424,0.51437,0.0274,5.74184,4],[0.58114,17.66732,14.44219,0,0.10016,0,0.08461,1.01318,3.83667,0.51559,0.03247,5.48204,4],[0.50835,34.80969,14.83749,0,0.09076,0,0.12023,1.02382,3.11309,0.54195,0.03998,5.21332,4],[0.12089,124.96604,0.96086,0.00109,0.08386,0,0,1.44597,2.35542,0.59756,0.03367,5.50751,4],[0.01218,20.04431,0.82227,0.02875,0.05103,0,0,3.49107,2.42695,0.5905,0.02065,6.01922,4],[0.0152,10.01689,1.0285,0.07015,0.05398,0,0,5.68189,1.35325,0.68567,0.04204,5.29359,4],[0.60007,16.03206,16.86619,0,0.09716,0,0.06542,1.01304,3.99556,0.50953,0.03144,5.52023,4],[0.00968,9.9378,1.06585,0.1505,0.03896,0,0.9717,5.34815,1.38199,0.69163,0.06865,4.65528,4],[0.05196,33.35975,1.32485,0.00191,0.04385,0,0.45434,1.49147,1.44991,0.64434,0.06636,4.58613,4],[0.11107,40.61956,2.27022,0.00012,0.05265,0,0.4436,1.41467,1.10046,0.69669,0.11104,3.87352,4],[0.05044,21.40398,3.24611,0.03682,0.03983,0,0.85808,2.60385,1.74274,0.64092,0.07327,4.70991,4],[0.12337,47.79518,1.53184,0.00014,0.05388,0,0.26537,1.24992,2.27445,0.58604,0.04481,5.12325,4],[0.10008,43.91951,2.33347,1e-05,0.05199,0,0.38068,1.38523,0.93581,0.71623,0.12084,3.64621,4],[0.07856,34.56576,1.62541,0.00562,0.04926,0,0.53355,1.55879,1.46422,0.64828,0.06918,4.54382,4],[0.14418,53.98728,1.71818,9e-05,0.05662,0,0.32143,1.21843,2.77684,0.56444,0.03763,5.36219,4],[0.10633,45.98219,1.68518,0.00143,0.05226,0,0.34212,1.32292,2.64088,0.57461,0.03924,5.36346,4],[0.10483,38.88525,1.79604,0.00279,0.05355,0,0.62102,1.60439,2.09522,0.60903,0.04779,5.11367,4],[0.29468,53.40789,2.87212,0,0.06827,0,0.24872,1.10529,3.14175,0.54105,0.03527,5.40734,4],[0.34925,88.79345,2.88139,0,0.14245,0,1,1.16649,5.20308,0.49749,0.01627,6.45481,4],[0.12263,63.93911,1.36831,0,0.13274,0,0,1.34544,2.74062,0.57918,0.02493,5.89633,4],[0.51938,22.2221,11.79367,0,0.17964,0,0.17076,1.04994,4.92175,0.50971,0.0186,6.19362,4],[0.60516,12.7249,14.92629,0,0.17535,0,0.13318,1.03225,5.85428,0.48018,0.01669,6.33785,4],[0.0111,20.38043,0.68615,0.05797,0.05671,0,0,10.75816,2.83129,0.6092,0.03801,5.49511,4],[0.12466,122.69939,1.17904,0.00025,0.115,0,0,1.5464,2.39863,0.59228,0.03154,5.55882,4],[0.62428,15.26044,14.9208,0,0.17959,0,0.11706,1.02742,5.08373,0.49493,0.01974,6.10476,4],[0.62684,10.50221,13.7999,0,0.15848,0,0.06834,1.01878,4.92353,0.49729,0.01831,6.16239,4],[0.27363,61.95053,2.05396,0.00011,0.13392,0,0.21522,1.20728,3.57616,0.55704,0.02635,5.94344,4],[0.28744,69.18082,2.682,0.00062,0.13867,0,0.36335,1.23258,5.07581,0.52065,0.01574,6.48745,4],[0.47388,26.66683,7.47567,0,0.17554,0,0.19175,1.08491,3.56404,0.55336,0.02649,5.78628,4],[0.06221,88.40864,0.89675,0.01473,0.08687,0,1,3.75145,1.54373,0.66757,0.07225,4.6495,4],[0.04376,17.90767,1.61124,0.0117,0.04135,0,0.45404,1.80417,1.45131,0.65585,0.0677,4.65287,4],[0.07773,26.02762,1.81118,0.00753,0.04582,0,0.36494,1.48385,1.63162,0.64951,0.0724,4.60064,4],[0.07182,28.51017,1.37404,0.00866,0.04745,0,0.38457,1.49456,1.62257,0.65071,0.0695,4.67937,4],[0.09405,40.4499,1.64261,0.00044,0.0503,0,0.34426,1.33585,1.4924,0.6611,0.0811,4.48725,4],[0.12467,38.08221,1.91076,4e-05,0.05695,0,0.19912,1.21129,1.98215,0.61951,0.0595,4.83059,4],[0.16708,65.49392,1.85743,0,0.06127,0,0.2163,1.11439,1.51343,0.65268,0.07863,4.37456,4],[0.2268,77.64804,2.03623,0,0.06692,0,0.19157,1.09176,1.7423,0.63058,0.07162,4.45559,4],[0.16793,45.99811,2.11512,0,0.0605,0,0.21079,1.15882,1.8757,0.63354,0.07157,4.55924,4],[0.17989,66.37726,2.01307,0,0.06279,0,0.21381,1.13135,1.81661,0.62563,0.06067,4.71585,4],[0.15176,74.71907,1.72851,2e-05,0.05898,0,0.18701,1.1308,1.91501,0.61533,0.06083,4.72285,4],[0.00454,3.17426,1.08571,0.44137,0.02343,0,1,5.40885,0.70393,0.7783,0.16402,3.87568,4],[0.00849,4.94998,0.97263,0.37066,0.02542,0,0.75543,2.89557,1.06361,0.73246,0.128,4.25394,4],[0.01577,6.81105,1.15695,0.33288,0.02721,0,0.55032,3.13367,1.27735,0.71062,0.10945,4.44685,4],[0.02577,11.37107,1.23936,0.13269,0.03496,0,0.48836,1.94325,1.51428,0.67996,0.06636,4.76015,4],[0.05812,23.51256,1.3956,0.0427,0.04363,0,0.45213,1.54875,1.80797,0.65276,0.06669,4.75625,4],[0.02598,14.80152,1.06425,0.1538,0.03414,0,0.51645,1.74353,1.32862,0.68889,0.0873,4.42863,4],[0.00423,3.45991,0.75673,0.37069,0.02493,0,1,5.20008,1.30828,0.68729,0.06951,4.79977,4],[0.00081,0.8525,0.40655,0.68447,0.01663,0,1,19.49464,0.71082,0.79108,0.22249,3.29371,4],[0.02976,14.74376,1.07312,0.13645,0.03469,0,0.77162,2.05025,1.48467,0.67967,0.08013,4.48942,4],[0.00646,3.55686,1.13486,0.39116,0.02509,0,1.18921,4.65409,1.11287,0.72012,0.11055,4.32783,4],[0.00696,3.9192,0.9108,0.45984,0.02226,0,1,5.08534,0.89263,0.73983,0.12359,3.89254,4],[0.0199,9.24656,1.27268,0.19364,0.03131,0,0.86765,2.80971,1.2012,0.7039,0.09528,4.27706,4],[0.04093,11.44017,1.84245,0.1022,0.03744,0,0.47808,2.17142,1.23281,0.6998,0.09128,4.4708,4],[0.05309,17.84838,2.24137,0.07774,0.04193,0,0.83662,2.13332,1.64676,0.66862,0.07337,4.74631,4],[0.0988,38.52793,2.64818,0.03071,0.0474,0,0.52982,1.641,2.01446,0.64162,0.06535,4.86202,4],[0.06785,24.31429,2.28381,0.0249,0.04532,0,0.47828,1.80589,1.36473,0.68632,0.09004,4.41779,4],[0.04823,15.86039,2.11517,0.06857,0.04107,0,0.51876,2.32994,1.42381,0.68826,0.07273,4.6476,4],[0.06663,16.90188,2.58348,0.08075,0.04274,0,0.56218,1.89838,1.45609,0.69951,0.08933,4.51797,4],[0.08061,45.9696,2.01497,0.01123,0.04497,0,0.30905,1.3273,1.32789,0.67577,0.07849,4.40368,4],[0.08279,33.79255,2.37712,0.01359,0.04875,0,0.40439,1.51444,1.1991,0.69901,0.08676,4.30538,4],[0.05407,15.5378,1.76055,0.03893,0.042,0,0.60277,1.99286,1.35154,0.68949,0.09395,4.27671,4],[0.10231,28.53395,2.05981,0.01458,0.05166,0,0.58461,1.66888,1.9757,0.64147,0.06163,4.86398,4],[0.08489,38.81673,2.36014,0.00378,0.04749,0,0.59624,1.4862,1.90449,0.63794,0.06215,4.77877,4],[0.08405,23.94288,2.08386,0.02779,0.04776,0,0.59115,1.885,1.19761,0.70362,0.09743,4.14993,4],[0.06397,30.83439,2.48103,0.00385,0.04594,0,0.55805,1.78488,1.32897,0.69043,0.09464,4.28993,5],[0.04823,18.27916,2.86922,0.01957,0.04226,0,0.76087,2.93285,0.98931,0.73797,0.12954,3.66382,5],[0.04491,28.30381,3.2432,0.00573,0.03879,0,0.66741,1.79127,1.52857,0.65235,0.07596,4.51989,5],[0.09837,46.49788,2.90448,0,0.05205,0,0.37542,1.36913,1.53184,0.66224,0.07911,4.43653,5],[0.10846,40.92658,2.98599,0.00058,0.05646,0,0.37856,1.35718,2.16093,0.63198,0.06586,4.76563,5],[0.12807,51.45291,2.16807,0.00013,0.05954,0,0.37631,1.22041,2.64375,0.5906,0.0472,5.19001,5],[0.2344,79.85627,2.48994,0,0.07625,0,0.18414,1.10037,2.56482,0.58779,0.04604,5.08481,5],[0.25096,99.97973,2.76774,0,0.07847,0,0.13582,1.06686,2.58137,0.59284,0.05506,4.8589,5],[0.18027,56.67198,2.14509,2e-05,0.07283,0,0.3618,1.24471,1.8739,0.64532,0.06674,4.71016,5],[0.23721,77.54384,2.91874,0,0.07597,0,0.37105,1.1981,1.9759,0.62688,0.06073,4.72488,5],[0.36064,72.70006,4.06059,0,0.10238,0,0.1819,1.05778,3.47497,0.55601,0.04021,5.33039,5],[0.15751,41.84021,2.21353,0,0.06213,0,0.36825,1.2789,1.61975,0.65614,0.07995,4.42542,5],[0.15883,45.07071,2.03979,0.00014,0.05966,0,0.20726,1.17542,2.4869,0.59349,0.05067,5.02499,5],[0.12438,49.16898,2.43886,7e-05,0.05731,0,0.24842,1.1981,2.23729,0.60256,0.05087,5.01664,5],[0.15662,57.99289,2.1356,0,0.06174,0,0.20564,1.17174,2.61402,0.58277,0.04255,5.21567,5],[0.11859,55.17397,2.21566,0,0.05565,0,0.28291,1.24421,2.25157,0.60288,0.04806,5.0724,5],[0.13001,62.80052,2.07872,0,0.05546,0,0.29272,1.17783,1.96949,0.61518,0.05944,4.73297,5],[0.16728,63.45098,2.12621,0,0.06167,0,0.37185,1.20937,2.30945,0.5891,0.04634,5.00493,5],[0.19206,56.31248,2.44195,0,0.06229,0,0.27216,1.15828,1.61069,0.64223,0.07761,4.32763,5],[0.01939,5.99953,1.73709,0.12384,0.03362,0,0.99596,4.87432,1.16103,0.70707,0.09618,4.30565,5],[0.05407,30.76768,1.8083,0.00392,0.04151,0,0.46151,1.56501,1.04894,0.70122,0.10079,4.03871,5],[0.08421,64.53028,3.23084,0.00012,0.04634,0,0.40319,1.42855,1.6258,0.6591,0.08401,4.41575,5],[0.01413,5.28628,1.653,0.1058,0.03212,0,0.97169,4.79596,0.75275,0.74875,0.12965,3.74925,5],[0.0568,28.73534,2.13211,0.00584,0.04142,0,0.42166,1.65288,1.66147,0.64845,0.06672,4.70516,5],[0.17367,71.55259,2.68235,0.00119,0.05926,0,0.46569,1.33019,2.01598,0.62454,0.06146,4.73686,5],[0.10524,30.20415,1.56773,0.00028,0.05651,0,0.36439,1.23808,2.34562,0.60098,0.0499,5.10998,5],[0.14781,39.05675,1.58618,0,0.06306,0,0.43758,1.26345,2.03046,0.61958,0.05969,4.82673,5],[0.26126,42.81931,1.76981,0,0.08741,0,0.16776,1.06117,2.88688,0.56613,0.04224,5.18423,5],[0.20698,36.16455,2.6779,0,0.07049,0,0.35934,1.1784,2.42024,0.59368,0.04947,4.98448,5],[0.18263,40.66642,1.57648,0,0.07035,0,0.29912,1.13327,2.74904,0.57696,0.04548,5.18028,5],[0.19312,34.4133,1.80278,0.00011,0.06869,0,0.31525,1.17953,2.73482,0.58795,0.04856,5.11368,5],[0.2696,33.90084,2.18587,0.00073,0.08052,0,0.39771,1.17604,2.93436,0.57045,0.04283,5.21256,5],[0.18182,35.25723,2.04646,0,0.0676,0,0.27611,1.17147,2.56463,0.5889,0.04362,5.20143,5]],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"cv":{"loafAcc":0.44,"within1":0.96,"qwk":0.65,"photoAcc":0.53,"photoWithin1":1,"poorRecall":0.88,"photos":19,"loaves":187},"gold":[["poor1_0.jpg",2],["poor1_1.jpg",2],["poor1_2.jpg",2],["poor1_3.jpg",2],["poor1_4.jpg",2],["poor1_5.jpg",2],["poor2_0.jpg",2],["poor2_1.jpg",2],["poor2_2.jpg",2],["poor2_3.jpg",2],["poor2_4.jpg",2],["poor2_5.jpg",2],["poor2_6.jpg",2],["poor2_7.jpg",2],["poor2_8.jpg",2],["poor2_9.jpg",2],["poor2_10.jpg",2],["poor2_11.jpg",2],["poor4_0.jpg",2],["poor4_1.jpg",2],["poor4_2.jpg",2],["poor4_3.jpg",2],["poor4_4.jpg",2],["poor4_5.jpg",2],["fair1_0.jpg",3],["fair1_1.jpg",3],["fair1_2.jpg",3],["fair1_3.jpg",3],["fair1_4.jpg",3],["fair1_5.jpg",3],["fair1_6.jpg",3],["fair1_7.jpg",3],["fair1_8.jpg",3],["fair1_9.jpg",3],["fair1_10.jpg",3],["fair1_11.jpg",3],["fair1_12.jpg",3],["fair1_13.jpg",3],["fair1_14.jpg",3],["fair1_15.jpg",3],["fair1_16.jpg",3],["fair1_17.jpg",3],["fair1_18.jpg",3],["fair1_19.jpg",3],["fair2_0.jpg",3],["fair2_1.jpg",3],["fair2_2.jpg",3],["fair2_3.jpg",3],["fair2_4.jpg",3],["fair2_5.jpg",3],["fair2_6.jpg",3],["fair2_7.jpg",3],["fair2_8.jpg",3],["fair2_9.jpg",3],["fair2_10.jpg",3],["fair2_11.jpg",3],["fair4_0.jpg",3],["fair4_1.jpg",3],["fair4_2.jpg",3],["fair4_3.jpg",3],["fair4_4.jpg",3],["fair4_5.jpg",3],["fair4_6.jpg",3],["fair4_7.jpg",3],["fair4_8.jpg",3],["fair4_9.jpg",3],["fair4_10.jpg",3],["fair4_11.jpg",3],["good1_0.jpg",4],["good1_1.jpg",4],["good1_2.jpg",4],["good1_3.jpg",4],["good1_4.jpg",4],["good1_5.jpg",4],["good1_6.jpg",4],["good1_7.jpg",4],["good2_0.jpg",4],["good2_1.jpg",4],["good2_2.jpg",4],["good2_3.jpg",4],["good2_4.jpg",4],["good2_5.jpg",4],["good2_6.jpg",4],["good2_7.jpg",4],["good2_8.jpg",4],["good2_9.jpg",4],["good3_0.jpg",4],["good3_1.jpg",4],["good3_2.jpg",4],["good3_3.jpg",4],["good3_4.jpg",4],["good3_5.jpg",4],["good3_6.jpg",4],["good3_7.jpg",4],["good3_8.jpg",4],["good3_9.jpg",4],["good3_10.jpg",4],["good3_11.jpg",4],["good4_0.jpg",4],["good4_1.jpg",4],["good4_2.jpg",4],["good4_3.jpg",4],["good4_4.jpg",4],["good4_5.jpg",4],["good4_6.jpg",4],["good4_7.jpg",4],["good4_8.jpg",4],["good4_9.jpg",4],["good5_0.jpg",4],["good5_1.jpg",4],["good5_2.jpg",4],["good5_3.jpg",4],["good5_4.jpg",4],["good5_5.jpg",4],["good5_6.jpg",4],["good5_7.jpg",4],["good5_8.jpg",4],["good5_9.jpg",4],["good5_10.jpg",4],["good5_11.jpg",4],["good6_0.jpg",4],["good6_1.jpg",4],["good6_2.jpg",4],["good6_3.jpg",4],["good6_4.jpg",4],["good6_5.jpg",4],["good6_6.jpg",4],["good6_7.jpg",4],["good6_8.jpg",4],["good6_9.jpg",4],["good7_0.jpg",4],["good7_1.jpg",4],["good7_2.jpg",4],["good7_3.jpg",4],["good7_4.jpg",4],["good7_5.jpg",4],["good7_6.jpg",4],["good7_7.jpg",4],["good7_8.jpg",4],["good7_9.jpg",4],["good7_10.jpg",4],["good7_11.jpg",4],["good8_0.jpg",4],["good8_1.jpg",4],["good8_2.jpg",4],["good8_3.jpg",4],["good8_4.jpg",4],["good8_5.jpg",4],["good8_6.jpg",4],["good8_7.jpg",4],["good8_8.jpg",4],["good8_9.jpg",4],["good8_10.jpg",4],["good8_11.jpg",4],["vg1_0.jpg",5],["vg1_1.jpg",5],["vg1_2.jpg",5],["vg1_3.jpg",5],["vg1_4.jpg",5],["vg2_0.jpg",5],["vg2_1.jpg",5],["vg2_2.jpg",5],["vg2_3.jpg",5],["vg2_4.jpg",5],["vg2_5.jpg",5],["vg3_0.jpg",5],["vg3_1.jpg",5],["vg3_2.jpg",5],["vg3_3.jpg",5],["vg3_4.jpg",5],["vg3_5.jpg",5],["vg3_6.jpg",5],["vg3_7.jpg",5],["vg4_0.jpg",5],["vg4_1.jpg",5],["vg4_2.jpg",5],["vg4_3.jpg",5],["vg4_4.jpg",5],["vg4_5.jpg",5],["vg5_0.jpg",5],["vg5_1.jpg",5],["vg5_2.jpg",5],["vg5_3.jpg",5],["vg5_4.jpg",5],["vg5_5.jpg",5],["vg5_6.jpg",5],["vg5_7.jpg",5]]};</script>
+<script>/* ===== تطبيق تدريب النموذج — واجهة Apps Script ===== */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const LEVEL = { 1: 'ضعيف جدًا', 2: 'ضعيف', 3: 'مقبول', 4: 'جيد', 5: 'جيد جدًا' };
+const DESC = { 1: 'لب متكتل أو غير مختمر أو غير ناضج، وفراغات غير منتظمة جدًا', 2: 'توزيع هواء غير متجانس مع مناطق كثيفة متكتلة', 3: 'تفاوت بسيط في توزيع الفراغات الهوائية', 4: 'لب متجانس بمسامات منتظمة مع تفاوت طفيف', 5: 'لب متجانس تمامًا، مسامات دقيقة منتظمة، قوام إسفنجي مرن' };
+const LOAVES = 5, GOLD_EVERY = 5, REF_BASE = 'https://abdshheaber-source.github.io/crumb-app/ref/';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (v, d = 2) => v == null || isNaN(v) ? '—' : Number(v).toFixed(d);
+const pct = v => v == null || isNaN(v) ? '—' : Math.round(v * 100) + '%';
+const kv = (k, v) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`;
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } };
+const tick = () => new Promise(r => setTimeout(r, 30));
+const api = (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(e => rej(e && e.message ? e : new Error(String(e))))[fn](...a));
+const rateButtons = () => `<div class="rate">${[5, 4, 3, 2, 1].map(k => `<button data-k="${k}"><b>${k} — ${LEVEL[k]}</b><small>${DESC[k]}</small></button>`).join('')}</div>`;
+
+// ---------- image helpers ----------
+function loadFile(file) { return new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; }); }
+function imgToData(im, maxDim = 1600) { const s = Math.min(1, maxDim / Math.max(im.naturalWidth, im.naturalHeight)); const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); const g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height); return g.getImageData(0, 0, c.width, c.height); }
+function resample(img, box, maxDim) {
+  const b = box || { x: 0, y: 0, w: img.width, h: img.height };
+  const sc = maxDim / Math.max(b.w, b.h), W = Math.max(1, Math.round(b.w * sc)), H = Math.max(1, Math.round(b.h * sc));
+  const src = document.createElement('canvas'); src.width = img.width; src.height = img.height; src.getContext('2d').putImageData(new ImageData(img.data, img.width, img.height), 0, 0);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, b.x, b.y, b.w, b.h, 0, 0, W, H);
+  const d = g.getImageData(0, 0, W, H); return { data: d.data, width: W, height: H };
+}
+function renderMaps(m, overlay, q = 0.8) {
+  const c = document.createElement('canvas'); c.width = m.w; c.height = m.h; const g = c.getContext('2d');
+  const id = new ImageData(new Uint8ClampedArray(m.rgba), m.w, m.h);
+  if (overlay) for (let i = 0; i < m.w * m.h; i++) {
+    const o = i * 4; let col = null, a = 0.5;
+    if (!m.core[i]) { id.data[o] *= 0.55; id.data[o + 1] *= 0.55; id.data[o + 2] *= 0.55; continue; }
+    if (m.wet[i]) col = [255, 140, 0]; else if (m.pore[i]) col = [40, 200, 70]; else if (m.smoothMap[i] < 0.018) col = [230, 50, 50];
+    if (col) for (let k = 0; k < 3; k++) id.data[o + k] = id.data[o + k] * (1 - a) + col[k] * a;
+  }
+  g.putImageData(id, 0, 0); return c.toDataURL('image/jpeg', q);
+}
+
+// ---------- model ----------
+let CFG = null;
+function pubModel() { return CFG && CFG.published ? CFG.published.model : REF.model; }
+function pubVer() { return CFG && CFG.published ? 'v' + CFG.published.version : 'مدمج'; }
+const refRows = () => REF.rows.map(r => ({ f: Object.fromEntries(REF.feats.map((k, j) => [k, r[j]])), g: r[12] }));
+
+// ---------- start ----------
+let ME = lsGet('trMe', null);
+async function boot() {
+  $('main').innerHTML = '<div class="spin">جارٍ الاتصال…</div>';
+  try { CFG = await api('getConfig'); } catch (e) { $('main').innerHTML = `<div class="card warn">تعذّر الاتصال بالخادم: ${esc(e.message)}<button class="primary" onclick="boot()">إعادة المحاولة</button></div>`; return; }
+  if (ME && !CFG.monitors.some(m => m.name === ME.name)) ME = null;
+  if (!ME) return pickMe();
+  $('#who').textContent = ME.name + ' • النموذج ' + pubVer();
+  $('main').innerHTML = ['sample', 'review', 'me', 'admin'].map(t => `<section class="tab" id="tab-${t}" hidden></section>`).join('');
+  $('nav').hidden = false; $('nav [data-tab=admin]').hidden = ME.role !== 'admin'; show(lsGet('trTab', 'sample'));
+  flushPending();
+}
+function pickMe() {
+  $('nav').hidden = true;
+  $('main').innerHTML = `<div class="card"><h2>من أنت؟</h2><div class="hint">اختر اسمك مرة واحدة على هذا الجوال. الأسماء يضيفها المشرف في ورقة «المراقبون».</div>
+    ${CFG.monitors.map((m, i) => `<button class="ghost" data-i="${i}">${esc(m.name)}${m.role === 'admin' ? ' (مشرف)' : ''}</button>`).join('')}</div>`;
+  $$('main button').forEach(b => b.onclick = () => { ME = CFG.monitors[+b.dataset.i]; lsSet('trMe', ME); boot(); });
+}
+function show(tab) {
+  if (tab === 'admin' && ME.role !== 'admin') tab = 'sample';
+  lsSet('trTab', tab);
+  $$('.tab').forEach(t => t.hidden = t.id !== 'tab-' + tab);
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  ({ sample: renderSample, review: renderReview, me: renderMe, admin: renderAdmin })[tab]();
+}
+
+// ---------- 1) sample capture ----------
+let cur = null;
+function renderSample() {
+  const el = $('#tab-sample'), st = lsGet('trSet', {}), pend = lsGet('trPending', []);
+  if (!cur) {
+    el.innerHTML = `${pend.length ? `<div class="card warn">${pend.length} عيّنة لم تُرسل بعد (انقطاع اتصال).<button class="primary" id="s-flush">إرسال الآن</button></div>` : ''}
+      <div class="card"><h2>عيّنة جديدة</h2>
+      <label>المخبز<input id="s-bak" list="bak-list" value="${esc(st.bakery || '')}" placeholder="اسم المخبز"></label>
+      <datalist id="bak-list">${(st.bakeries || []).map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
+      <div class="row"><label>نوع العيّنة<select id="s-type"><option value="line">خط إنتاج</option><option value="shelf">أرفف</option></select></label>
+      <label>رقم الخط<input id="s-line" type="number" min="1" max="6" value="${st.line || 1}"></label></div>
+      <div class="hint">افصل الرغيف وضع <b>الطبقة العليا</b> ووجهها الداخلي للأعلى على خلفية داكنة موحدة. صوّر من الأعلى مباشرة، بلا فلاش ولا ظلال، ورغيف واحد يملأ معظم الإطار. صوّر ${LOAVES} أرغفة عشوائية من العيّنة، لا الأفضل.</div>
+      <button class="primary" id="s-start">بدء التصوير</button></div>`;
+    if ($('#s-flush')) $('#s-flush').onclick = flushPending;
+    $('#s-start').onclick = () => {
+      const bak = $('#s-bak').value.trim(); if (!bak) return alert('أدخل اسم المخبز');
+      lsSet('trSet', { bakery: bak, line: +$('#s-line').value, bakeries: [...new Set([bak, ...(st.bakeries || [])])].slice(0, 80) });
+      cur = { sampleId: 'S' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: new Date().toISOString(), monitor: ME.name, bakery: bak, type: $('#s-type').value, line: +$('#s-line').value, modelVer: pubVer(), loaves: [] };
+      renderSample();
+    };
+    return;
+  }
+  const i = cur.loaves.length;
+  if (i < LOAVES) {
+    el.innerHTML = `<div class="card"><h2>الرغيف ${i + 1} من ${LOAVES}</h2><div class="muted">${esc(cur.bakery)} • ${cur.type === 'line' ? 'خط ' + cur.line : 'أرفف'}</div>
+      <div class="progress">${Array.from({ length: LOAVES }, (_, k) => `<span class="${k < i ? 'done' : k === i ? 'now' : ''}"></span>`).join('')}</div>
+      <label class="cam">📷 صوّر الرغيف ${i + 1}<input id="cap" type="file" accept="image/*" capture="environment" hidden></label>
+      <div id="work"></div><button class="ghost" id="s-cancel">إلغاء العيّنة</button></div>`;
+    $('#s-cancel').onclick = () => { if (confirm('إلغاء العيّنة الحالية؟')) { cur = null; renderSample(); } };
+    $('#cap').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      $('#work').innerHTML = '<div class="spin">جارٍ التحليل…</div>'; await tick();
+      try {
+        const im = await loadFile(f), data = imgToData(im);
+        const r = Engine.analyze({ data: data.data, width: data.width, height: data.height }, resample);
+        if (!r.ok) { $('#work').innerHTML = `<div class="warn">${esc(r.reason)}. أعد التصوير.</div>`; return; }
+        const jpeg = renderMaps(r.maps, false, 0.82), overlay = renderMaps(r.maps, true, 0.7);
+        const p = Engine.scoreWithModel(pubModel(), r.features);
+        const loaf = { idx: i + 1, jpeg, overlay, features: r.features, flags: r.flags, appScore: p.expected };
+        $('#work').innerHTML = `<img class="big" src="${jpeg}">
+          ${r.flags.length ? `<div class="warn">⚠️ ${r.flags.map(esc).join('، ')}<button class="ghost" id="retake">إعادة التصوير</button></div>` : ''}
+          <h3>قيّم التجانس الداخلي قبل رؤية نتيجة التطبيق</h3>${rateButtons()}`;
+        if ($('#retake')) $('#retake').onclick = () => renderSample();
+        $$('#work .rate button').forEach(b => b.onclick = () => {
+          loaf.ownRating = +b.dataset.k;
+          $('#work').innerHTML = `<img class="big" src="${overlay}"><div class="legend"><span class="g">مسامات</span><span class="r">مناطق ملساء/كثيفة</span><span class="o">رطوبة</span></div>
+            <div class="res"><div>تقييمك: <b>${loaf.ownRating}</b></div><div>التطبيق: <b>${fmt(loaf.appScore, 1)}</b></div></div>
+            <button class="primary" id="next">${i + 1 < LOAVES ? 'الرغيف التالي' : 'إنهاء العيّنة'}</button>`;
+          $('#next').onclick = () => { cur.loaves.push(loaf); renderSample(); };
+        });
+      } catch (err) { $('#work').innerHTML = `<div class="warn">تعذّر تحليل الصورة: ${esc(err.message)}</div>`; }
+    };
+    return;
+  }
+  const sc = cur.loaves.map(l => l.appScore), mr = cur.loaves.map(l => l.ownRating);
+  el.innerHTML = `<div class="card"><h2>ملخص العيّنة</h2>
+    <div class="res"><div>متوسط تقييمك: <b>${fmt(Engine.mean(mr), 1)}</b></div><div>متوسط التطبيق: <b>${fmt(Engine.mean(sc), 1)}</b></div></div>
+    <div class="grid5">${cur.loaves.map(l => `<figure><img src="${l.overlay}"><figcaption>${fmt(l.appScore, 1)} / أنت ${l.ownRating}</figcaption></figure>`).join('')}</div>
+    <div class="hint">عند الإرسال تُحفظ الصور في Drive، وتذهب إلى زملائك لتقييمها دون أن يروا تقييمك.</div>
+    <button class="primary" id="send">إرسال العيّنة</button><button class="ghost" id="drop">تجاهل</button><div id="sendst"></div></div>`;
+  $('#drop').onclick = () => { if (confirm('تجاهل العيّنة دون إرسال؟')) { cur = null; renderSample(); } };
+  $('#send').onclick = async () => {
+    $('#send').disabled = true; $('#sendst').innerHTML = '<div class="spin">جارٍ الرفع…</div>';
+    const p = { ...cur, loaves: cur.loaves.map(({ overlay, ...l }) => l) };
+    try { await api('saveSample', p); cur = null; alert('تم إرسال العيّنة ✅'); renderSample(); }
+    catch (e) { const q = lsGet('trPending', []); q.push(p); lsSet('trPending', q); cur = null; alert('تعذّر الإرسال، حُفظت العيّنة على الجوال وسترسل لاحقًا'); renderSample(); }
+  };
+}
+async function flushPending() {
+  let q = lsGet('trPending', []); if (!q.length) return;
+  const left = [];
+  for (const p of q) { try { await api('saveSample', p); } catch (e) { left.push(p); } }
+  lsSet('trPending', left);
+  if ($('#tab-sample') && !$('#tab-sample').hidden && !cur) renderSample();
+}
+
+// ---------- 2) peer review (blind) + hidden gold ----------
+let RQ = null, rCount = 0;
+async function renderReview() {
+  const el = $('#tab-review');
+  if (!RQ || !RQ.todo.length) {
+    el.innerHTML = '<div class="spin">جارٍ تحميل الصور…</div>';
+    try { RQ = await api('getQueue', ME.name, 4); } catch (e) { el.innerHTML = `<div class="card warn">${esc(e.message)}</div>`; return; }
+    RQ.goldLeft = REF.gold.filter(g => !RQ.goldDone.includes('REF:' + g[0]));
+  }
+  const useGold = RQ.goldLeft.length && ((rCount + 1) % GOLD_EVERY === 0 || !RQ.todo.length);
+  if (!RQ.todo.length && !useGold) { el.innerHTML = `<div class="card"><h2>لا توجد صور بانتظارك 👍</h2><div class="muted">قيّمت ${RQ.myDone} صورة لزملائك. عُد لاحقًا.</div><button class="ghost" id="r-ref">تحديث</button></div>`; $('#r-ref').onclick = () => { RQ = null; renderReview(); }; return; }
+  let item, src;
+  if (useGold) { const g = RQ.goldLeft.splice((Math.random() * RQ.goldLeft.length) | 0, 1)[0]; item = { id: 'REF:' + g[0], gold: true, g: g[1] }; src = REF_BASE + g[0]; }
+  else { item = RQ.todo.shift(); }
+  el.innerHTML = `<div class="card"><h2>تقييم صور الزملاء</h2><div class="muted">تقييم أعمى: لا يظهر المصوّر ولا تقييمه ولا درجة التطبيق • متبقٍ ${RQ.remaining}</div>
+    <div id="rimg"><div class="spin">تحميل الصورة…</div></div>${rateButtons()}<button class="ghost" id="r-bad">الصورة غير صالحة للتقييم</button></div>`;
+  if (!src) { try { src = await api('getImage', item.fileId); } catch (e) { $('#rimg').innerHTML = `<div class="warn">${esc(e.message)}</div>`; } }
+  $('#rimg').innerHTML = `<img class="big" src="${src}">`;
+  const done = async v => {
+    $$('#tab-review button').forEach(b => b.disabled = true);
+    try { await api('saveRating', item.id, ME.name, v, !!item.gold, item.g || '', false); rCount++; if (!item.gold) { RQ.remaining--; RQ.myDone++; } }
+    catch (e) { alert('تعذّر الحفظ: ' + e.message); }
+    renderReview();
+  };
+  $$('#tab-review .rate button').forEach(b => b.onclick = () => done(+b.dataset.k));
+  $('#r-bad').onclick = () => done(0);
+}
+
+// ---------- 3) my performance ----------
+async function renderMe() {
+  const el = $('#tab-me'); el.innerHTML = '<div class="spin">…</div>';
+  let s; try { s = await api('getMyStats', ME.name); } catch (e) { el.innerHTML = `<div class="card warn">${esc(e.message)}</div>`; return; }
+  const g = s.gold, n = g.length, acc = n ? Engine.mean(g.map(x => +(x.v === x.g))) : null, w1 = n ? Engine.mean(g.map(x => +(Math.abs(x.v - x.g) <= 1))) : null, bias = n ? Engine.mean(g.map(x => x.v - x.g)) : null;
+  el.innerHTML = `<div class="card"><h2>أدائي — ${esc(ME.name)}</h2>
+    <table class="kv">${kv('عيّنات صوّرتها (أرغفة)', s.own)}${kv('صور قيّمتها لزملائي', s.peer)}${kv('صور مرجعية قيّمتها', n)}</table>
+    ${n >= 5 ? `<h3>دقتي على الصور المرجعية</h3><table class="kv">${kv('تطابق تام', pct(acc))}${kv('فرق درجة واحدة أو أقل', pct(w1))}${kv('الانحياز', (bias > 0 ? '+' : '') + fmt(bias) + (bias > 0.3 ? ' (تميل للتساهل)' : bias < -0.3 ? ' (تميل للتشدد)' : ' (متوازن)'))}</table>`
+      : '<div class="muted">تظهر دقتك بعد تقييم 5 صور مرجعية على الأقل. الصور المرجعية مخلوطة مع صور الزملاء ولا تعرف أيها مرجعي.</div>'}
+    <button class="ghost" id="me-sw">تغيير المستخدم على هذا الجوال</button></div>`;
+  $('#me-sw').onclick = () => { if (confirm('تغيير المستخدم؟')) { localStorage.removeItem('trMe'); ME = null; boot(); } };
+}
+
+// ---------- 4) admin: consensus, arbitration, training, publishing ----------
+let PIN = null, AD = null;
+async function renderAdmin() {
+  const el = $('#tab-admin');
+  if (!PIN) {
+    el.innerHTML = `<div class="card"><h2>دخول المشرف</h2><label>رمز المشرف (PIN)<input id="a-pin" type="password" inputmode="numeric"></label><button class="primary" id="a-go">دخول</button></div>`;
+    $('#a-go').onclick = async () => { try { await api('verifyPin', $('#a-pin').value); PIN = $('#a-pin').value; renderAdmin(); } catch (e) { alert(e.message); } };
+    return;
+  }
+  el.innerHTML = '<div class="spin">جارٍ تحميل البيانات وحساب الدمج…</div>'; await tick();
+  try { AD = await api('getTrainingData', PIN); } catch (e) { el.innerHTML = `<div class="card warn">${esc(e.message)}</div>`; return; }
+  const C = computeConsensus(AD);
+  const lab = C.loaves.filter(l => l.label), disp = C.loaves.filter(l => l.disputed), dist = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }; lab.forEach(l => dist[l.label]++);
+  el.innerHTML = `
+  <div class="card"><h2>لوحة المشرف</h2><table class="kv">${kv('أرغفة مُرسلة', AD.samples.length)}${kv('أرغفة لها تقييم مدمج معتمد', lab.length)}${kv('بانتظار تقييمات الزملاء', C.loaves.filter(l => l.status === 'wait').length)}${kv('مختلف عليها تحتاج حسمك', disp.length)}${kv('النموذج المنشور', pubVer())}</table>
+    <a href="${CFG.sheetUrl}" target="_blank"><button class="ghost">فتح الشيت</button></a></div>
+  <div class="card"><h2>توزيع الدرجات المعتمدة</h2>${[1, 2, 3, 4, 5].map(k => `<div class="bar"><span>${LEVEL[k]}</span><div><i style="width:${Math.min(100, dist[k] / 80 * 100)}%"></i></div><b>${dist[k]}/80</b></div>`).join('')}<div class="muted">الهدف للتعميم: 80 رغيفًا على الأقل لكل درجة.</div></div>
+  <div class="card"><h2>أداء المراقبين (على الصور المرجعية)</h2>${C.raters.length ? `<table class="grid"><tr><th>المراقب</th><th>مرجعية</th><th>تطابق</th><th>±1</th><th>الانحياز</th><th>الوزن</th></tr>${C.raters.map(r => `<tr><td>${esc(r.name)}</td><td>${r.n}</td><td>${pct(r.acc)}</td><td>${pct(r.w1)}</td><td>${r.n ? (r.bias > 0 ? '+' : '') + fmt(r.bias) : '—'}</td><td>${fmt(r.w)}</td></tr>`).join('')}</table><div class="muted">الوزن يحدد قوة رأي المراقب في الدمج: المراقب الأدق رأيه أثقل. (افتراضي 0.6 حتى 3 صور مرجعية)</div>` : '<div class="muted">لا توجد تقييمات بعد</div>'}</div>
+  <div class="card"><h2>صور مختلف عليها (${disp.length})</h2>${disp.length ? '<div class="muted">فرق 3 درجات أو أكثر بين المقيّمين. قرارك يُعتمد ويُستبعد ما عداه.</div><button class="primary" id="a-arb">بدء الحسم</button>' : '<div class="muted">لا يوجد</div>'}<div id="arb"></div></div>
+  <div class="card"><h2>تدريب نموذج جديد</h2><div class="hint">يُدرَّب على ${REF.rows.length} رغيفًا مرجعيًا + ${lab.length} رغيفًا ميدانيًا معتمدًا. الاختبار على الأرغفة الميدانية بإخراج العيّنة كاملة (تحقق متقاطع 5 طيات).</div>
+    <button class="primary" id="a-train">تدريب ومقارنة</button><div id="tr-out"></div></div>
+  <div class="card"><h2>الإصدارات المنشورة</h2>${AD.models.length ? `<table class="grid"><tr><th>الإصدار</th><th>التاريخ</th><th>أرغفة</th><th>±1</th><th>كابا</th><th></th></tr>${AD.models.slice().reverse().map(m => `<tr><td>v${m.version}${m.active === 'نعم' ? ' ✅' : ''}</td><td>${new Date(m.at).toLocaleDateString('ar')}</td><td>${m.n}</td><td>${pct(m.w1)}</td><td>${fmt(m.qwk)}</td><td>${m.active === 'نعم' ? '' : `<button class="ghost sm" data-rb="${m.version}">رجوع</button>`}</td></tr>`).join('')}</table>` : '<div class="muted">لم يُنشر أي نموذج بعد — تطبيق المراقبين يستخدم النموذج المدمج.</div>'}</div>
+  <div class="card"><button class="ghost" id="a-out">خروج المشرف</button></div>`;
+  $('#a-out').onclick = () => { PIN = null; renderAdmin(); };
+  if ($('#a-arb')) $('#a-arb').onclick = () => arbitrate(disp.slice());
+  $('#a-train').onclick = () => trainAndCompare(lab);
+  $$('[data-rb]').forEach(b => b.onclick = async () => { if (!confirm('إرجاع كل المراقبين للإصدار v' + b.dataset.rb + '؟')) return; try { await api('rollbackModel', PIN, +b.dataset.rb); CFG = await api('getConfig'); renderAdmin(); } catch (e) { alert(e.message); } });
+}
+
+/** الدمج الموزون: وزن كل مراقب من دقته على الصور المرجعية؛ رأي المصوّر ×0.8؛ حسم المشرف يتقدم على الجميع */
+function computeConsensus(D) {
+  const byR = {};
+  D.ratings.filter(r => r.gold && r.v > 0).forEach(r => (byR[r.rater] = byR[r.rater] || []).push(r));
+  const names = [...new Set(D.ratings.map(r => r.rater).concat(D.samples.map(s => s.monitor)))];
+  const raters = names.map(n => {
+    const g = byR[n] || [], k = g.length;
+    const mae = k ? Engine.mean(g.map(x => Math.abs(x.v - x.g))) : null;
+    return { name: n, n: k, acc: k ? Engine.mean(g.map(x => +(x.v === x.g))) : null, w1: k ? Engine.mean(g.map(x => +(Math.abs(x.v - x.g) <= 1))) : null, bias: k ? Engine.mean(g.map(x => x.v - x.g)) : null, w: k >= 3 ? Math.max(0.2, Math.min(1, 1 - mae / 2)) : 0.6 };
+  }).sort((a, b) => (b.n ? b.w : 0) - (a.n ? a.w : 0));
+  const W = Object.fromEntries(raters.map(r => [r.name, r.w]));
+  const R = {}; D.ratings.filter(r => !r.gold).forEach(r => (R[r.id] = R[r.id] || []).push(r));
+  const loaves = D.samples.map(s => {
+    const rs = R[s.id] || [], arb = rs.filter(r => r.arb && r.v > 0).pop();
+    const bad = rs.filter(r => r.v === 0).length;
+    const votes = [{ v: s.own, w: (W[s.monitor] || 0.6) * 0.8 }].concat(rs.filter(r => r.v > 0 && !r.arb).map(r => ({ v: r.v, w: W[r.rater] || 0.6 }))).filter(x => x.v > 0);
+    const o = { ...s, votes, n: votes.length };
+    if (arb) return { ...o, label: arb.v, status: 'arb' };
+    if (bad >= 2) return { ...o, status: 'invalid' };
+    if (votes.length < 3) return { ...o, status: 'wait' };
+    const vs = votes.map(x => x.v), spread = Math.max(...vs) - Math.min(...vs);
+    if (spread >= 3) return { ...o, status: 'disputed', disputed: true };
+    return { ...o, label: wMedian(votes), status: spread === 2 ? 'ok-diff' : 'ok' };
+  });
+  return { raters, loaves };
+}
+function wMedian(v) { const s = v.slice().sort((a, b) => a.v - b.v), T = s.reduce((a, b) => a + b.w, 0); let c = 0; for (const x of s) { c += x.w; if (c >= T / 2) return x.v; } return s[s.length - 1].v; }
+
+async function arbitrate(list) {
+  const box = $('#arb');
+  if (!list.length) { box.innerHTML = '<div class="muted">انتهى الحسم ✅</div>'; return; }
+  const l = list.shift();
+  box.innerHTML = `<div class="spin">…</div>`;
+  let src = ''; try { src = await api('getImage', l.fileId); } catch (e) { }
+  box.innerHTML = `<img class="big" src="${src}"><div class="muted">التقييمات: ${l.votes.map(v => v.v).join('، ')} • متبقٍ ${list.length}</div>${rateButtons()}<button class="ghost" id="arb-bad">استبعاد الصورة</button>`;
+  const go = async v => { try { await api('saveRating', l.id, ME.name, v, false, '', v > 0); } catch (e) { alert(e.message); } arbitrate(list); };
+  $$('#arb .rate button').forEach(b => b.onclick = () => go(+b.dataset.k));
+  $('#arb-bad').onclick = () => go(0);
+}
+
+function metricsOf(yt, yp) {
+  if (!yt.length) return null;
+  const idx = yt.map((t, i) => t <= 2 ? i : -1).filter(i => i >= 0);
+  return { n: yt.length, accuracy: Engine.mean(yt.map((t, i) => +(t === yp[i]))), within1: Engine.mean(yt.map((t, i) => +(Math.abs(t - yp[i]) <= 1))), mae: Engine.mean(yt.map((t, i) => Math.abs(t - yp[i]))), qwk: Engine.weightedKappa(yt, yp), recallPoor: idx.length ? Engine.mean(idx.map(i => +(yp[i] <= 2))) : null };
+}
+let NEW = null;
+async function trainAndCompare(lab) {
+  const out = $('#tr-out'); out.innerHTML = '<div class="spin">جارٍ التدريب والاختبار…</div>'; await tick();
+  const ref = refRows();
+  let cvNew = null, cvPub = null;
+  if (lab.length >= 20) {
+    const samples = [...new Set(lab.map(l => l.sampleId))], fold = Object.fromEntries(samples.map((s, i) => [s, i % 5]));
+    const yt = [], yn = [];
+    for (let f = 0; f < 5; f++) {
+      const tr = lab.filter(l => fold[l.sampleId] !== f), te = lab.filter(l => fold[l.sampleId] === f); if (!te.length) continue;
+      const m = Engine.trainModel(ref.map(r => r.f).concat(tr.map(l => l.f)), ref.map(r => r.g).concat(tr.map(l => l.label)), 1).model;
+      te.forEach(l => { yt.push(l.label); yn.push(Engine.scoreWithModel(m, l.f).cls); });
+      await tick();
+    }
+    cvNew = metricsOf(yt, yn);
+    cvPub = metricsOf(lab.map(l => l.label), lab.map(l => Engine.scoreWithModel(pubModel(), l.f).cls));
+  }
+  const res = Engine.trainModel(ref.map(r => r.f).concat(lab.map(l => l.f)), ref.map(r => r.g).concat(lab.map(l => l.label)), 5);
+  NEW = { model: { ...res.model, builtin: false }, metrics: cvNew || res.metrics, field: lab.length };
+  const better = !cvNew || !cvPub || (cvNew.within1 >= cvPub.within1 - 0.02 && cvNew.qwk >= cvPub.qwk - 0.02);
+  const row = (k, a, b, f = pct) => `<tr><td>${k}</td><td>${a == null ? '—' : f(a)}</td><td>${b == null ? '—' : f(b)}</td></tr>`;
+  out.innerHTML = `${cvNew ? `<h3>المقارنة على الأرغفة الميدانية (${cvNew.n})</h3><table class="grid"><tr><th>المقياس</th><th>المنشور ${pubVer()}</th><th>الجديد</th></tr>
+      ${row('تطابق تام', cvPub.accuracy, cvNew.accuracy)}${row('فرق ≤ 1', cvPub.within1, cvNew.within1)}${row('كشف الضعيف', cvPub.recallPoor, cvNew.recallPoor)}${row('كابا', cvPub.qwk, cvNew.qwk, v => fmt(v))}</table>`
+      : '<div class="warn">أقل من 20 رغيفًا ميدانيًا معتمدًا: لا يمكن المقارنة بعد. النموذج الجديد = المرجعية + ما توفر.</div>'}
+    <h3>أهم المؤشرات في النموذج الجديد</h3>${res.importance.slice(0, 6).map(i => `<div class="bar"><span>${FEATNAME[i.f] || i.f}</span><div><i class="${i.w < 0 ? 'neg' : ''}" style="width:${Math.min(100, Math.abs(i.w) * 80)}%"></i></div><b>${i.w > 0 ? '+' : ''}${fmt(i.w)}</b></div>`).join('')}
+    <div class="${better ? 'hint' : 'warn'}">${better ? '✅ النموذج الجديد أدق أو مساوٍ للمنشور.' : '⚠️ النموذج الجديد أضعف من المنشور. لا يُنصح بنشره.'}</div>
+    <label>ملاحظة الإصدار<input id="pub-note" placeholder="مثال: إضافة عيّنات ديسمبر"></label>
+    <button class="primary" id="pub" ${better ? '' : 'disabled'}>اعتماد ونشر للمراقبين</button>${better ? '' : '<button class="danger" id="pub-force">نشر رغم ذلك</button>'}`;
+  const pub = async () => {
+    if (!confirm('سيصل هذا النموذج لكل المراقبين عند فتح التطبيق. متابعة؟')) return;
+    try { const r = await api('publishModel', PIN, NEW.model, NEW.metrics, $('#pub-note').value, ME.name); CFG = await api('getConfig'); $('#who').textContent = ME.name + ' • النموذج ' + pubVer(); alert('تم النشر: الإصدار v' + r.version); renderAdmin(); }
+    catch (e) { alert(e.message); }
+  };
+  $('#pub').onclick = pub; if ($('#pub-force')) $('#pub-force').onclick = pub;
+}
+const FEATNAME = { poreFrac: 'نسبة المسامات', poreDensity: 'كثافة المسامات', poreSizeCV: 'تفاوت حجم المسامات', smoothFrac: 'المساحة الملساء', texMean: 'خشونة الملمس', wetFrac: 'بقع الرطوبة', gridCV: 'تفاوت التوزيع', lacunarity: 'الثغرية', glcmContrast: 'تباين الملمس', glcmHomog: 'تجانس الملمس', glcmEnergy: 'طاقة الملمس', glcmEntropy: 'إنتروبيا الملمس' };
+
+$$('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+boot();
+</script>
+</body></html>
