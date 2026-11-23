@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#005B8F"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png">
+<title>تقييم التجانس — المراقب</title><style>
+:root{--p:#005B8F;--p2:#007DBC;--g:#4B5563;--l:#F2F4F7;--ok:#1E8E3E;--bad:#C62828;--w:#E67E22}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--l);color:#1f2937;padding-bottom:76px}
+header{background:var(--p);color:#fff;padding:14px 16px;font-weight:700;font-size:17px;position:sticky;top:0;z-index:5}
+header small{display:block;font-weight:400;opacity:.85;font-size:12px}
+main{max-width:760px;margin:auto;padding:10px}
+.card{background:#fff;border-radius:12px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0001}
+h2{margin:0 0 10px;color:var(--p);font-size:18px}h3{color:var(--g);font-size:15px;margin:14px 0 8px}
+label{display:block;margin:8px 0;font-size:14px;color:var(--g)}input,select{display:block;width:100%;padding:11px;margin-top:4px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button,.cam{display:block;width:100%;padding:13px;margin:8px 0;border-radius:10px;border:0;font-size:16px;font-weight:600;cursor:pointer;text-align:center}
+.primary,.cam{background:var(--p2);color:#fff}.ghost{background:#fff;color:var(--p);border:1px solid var(--p2)}.danger{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+button:disabled{opacity:.45}
+.cam{font-size:18px;padding:22px}
+.hint{background:#EAF4FB;border-right:4px solid var(--p2);padding:10px;border-radius:8px;font-size:13.5px;line-height:1.7;margin:8px 0}
+.warn{background:#FFF4E5;border-right:4px solid var(--w);padding:10px;border-radius:8px;font-size:14px;margin:8px 0}
+.muted{color:#6b7280;font-size:13px}.center{text-align:center}
+.spin{padding:30px;text-align:center;color:var(--p)}
+img.big{width:100%;border-radius:10px;margin:8px 0;display:block}
+.rate button{background:#fff;border:1px solid #d1d5db;color:#111;text-align:right;padding:10px 12px}
+.rate button small{display:block;font-weight:400;color:#6b7280;font-size:12.5px;margin-top:3px}
+.rate button:active{background:#EAF4FB}
+.progress{display:flex;gap:6px;margin:10px 0}.progress span{flex:1;height:6px;border-radius:3px;background:#e5e7eb}.progress .done{background:var(--ok)}.progress .now{background:var(--p2)}
+.legend{display:flex;gap:12px;font-size:12px;flex-wrap:wrap}.legend span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:middle}
+.legend .g:before{background:#28C846}.legend .r:before{background:#E63232}.legend .o:before{background:#FF8C00}
+.res{display:flex;justify-content:space-around;background:var(--l);border-radius:10px;padding:10px;margin:8px 0;font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0}.kv td{padding:6px 4px;border-bottom:1px solid #eef0f3}.kv td:last-child{text-align:left;font-weight:600;direction:ltr}
+.grid th,.grid td{border:1px solid #e5e7eb;padding:6px;text-align:center}.grid th{background:var(--p);color:#fff}
+.conf td.diag{background:#D9EAD3;font-weight:700}
+.score{text-align:center;font-size:54px;font-weight:800;margin:6px 0}.score small{display:block;font-size:18px}
+.s1,.s2{color:var(--bad)}.s3{color:var(--w)}.s4,.s5{color:var(--ok)}
+.pill{padding:2px 8px;border-radius:10px;background:var(--l);font-weight:700}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0}.grid5 img{width:100%;border-radius:6px}.grid5 figure{margin:0}.grid5 figcaption{font-size:11px;text-align:center}
+details{border-bottom:1px solid #eef0f3;padding:8px 0}summary{cursor:pointer;font-size:14px}
+.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0}.bar span{width:120px}.bar div{flex:1;background:#e5e7eb;height:10px;border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--p2)}.bar i.neg{background:var(--bad)}.bar b{width:70px;text-align:left;direction:ltr}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;border-top:1px solid #e5e7eb;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;margin:0;border-radius:0;background:none;color:var(--g);font-size:12px;padding:10px 2px;font-weight:600}nav button.on{color:var(--p);border-top:3px solid var(--p)}
+nav button b{display:block;font-size:20px}
+
+.score{font-size:40px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:6px}.dot.ok{background:var(--ok)}.dot.mid{background:var(--w)}.dot.bad{background:var(--bad)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:9}
+#ver{display:block;font-weight:400;opacity:.85;font-size:12px}nav button{font-size:13px}</style></head>
+<body><header>تقييم التجانس الداخلي للرغيف<span id="ver"></span></header>
+<main><section class="tab" id="tab-eval"></section><section class="tab" id="tab-log" hidden></section></main>
+<nav><button data-tab="eval"><b>📷</b>تقييم</button><button data-tab="log"><b>🗂️</b>السجل</button></nav>
+<script>/* ===== Crumb analysis & statistics engine (pure JS, no DOM) ===== */
+const Engine = (() => {
+  // ---------- colour ----------
+  function toLab(rgba, n) {
+    const L = new Float32Array(n), A = new Float32Array(n), B = new Float32Array(n);
+    const lin = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const c = i / 255; lin[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    for (let i = 0; i < n; i++) {
+      const r = lin[rgba[4 * i]], g = lin[rgba[4 * i + 1]], b = lin[rgba[4 * i + 2]];
+      const x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047, y = 0.2126 * r + 0.7152 * g + 0.0722 * b, z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883;
+      const fx = f(x), fy = f(y), fz = f(z);
+      L[i] = 116 * fy - 16; A[i] = 500 * (fx - fy); B[i] = 200 * (fy - fz);
+    }
+    return { L, A, B };
+  }
+  // ---------- filters ----------
+  function boxBlur(src, w, h, r) {
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h), d = 2 * r + 1;
+    for (let y = 0; y < h; y++) {
+      let s = 0; const o = y * w;
+      for (let x = -r; x <= r; x++) s += src[o + Math.min(w - 1, Math.max(0, x))];
+      for (let x = 0; x < w; x++) { tmp[o + x] = s / d; s += src[o + Math.min(w - 1, x + r + 1)] - src[o + Math.max(0, x - r)]; }
+    }
+    for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let y = -r; y <= r; y++) s += tmp[Math.min(h - 1, Math.max(0, y)) * w + x];
+      for (let y = 0; y < h; y++) { out[y * w + x] = s / d; s += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; }
+    }
+    return out;
+  }
+  const gauss = (src, w, h, s) => { const r = Math.max(1, Math.round(s * 0.9)); return boxBlur(boxBlur(boxBlur(src, w, h, r), w, h, r), w, h, r); };
+  function minmax(src, w, h, r, isMax) { // separable square min/max filter
+    const tmp = new Float32Array(w * h), out = new Float32Array(w * h), op = isMax ? Math.max : Math.min;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = src[y * w + x]; for (let k = Math.max(0, x - r); k <= Math.min(w - 1, x + r); k++) v = op(v, src[y * w + k]); tmp[y * w + x] = v; }
+    for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) { let v = tmp[y * w + x]; for (let k = Math.max(0, y - r); k <= Math.min(h - 1, y + r); k++) v = op(v, tmp[k * w + x]); out[y * w + x] = v; }
+    return out;
+  }
+  function otsu(vals) {
+    let mn = Infinity, mx = -Infinity; for (const v of vals) { if (v < mn) mn = v; if (v > mx) mx = v; }
+    const bins = 256, hist = new Float64Array(bins), sc = (bins - 1) / (mx - mn || 1);
+    for (const v of vals) hist[Math.round((v - mn) * sc)]++;
+    let tot = vals.length, sum = 0; for (let i = 0; i < bins; i++) sum += i * hist[i];
+    let wB = 0, sB = 0, best = 0, th = 0;
+    for (let i = 0; i < bins; i++) { wB += hist[i]; if (!wB) continue; const wF = tot - wB; if (!wF) break; sB += i * hist[i]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) ** 2; if (v > best) { best = v; th = i; } }
+    return mn + th / sc;
+  }
+  function components(mask, w, h) { // 4-connected labelling; returns {lab, sizes}
+    const lab = new Int32Array(w * h), sizes = [0], st = new Int32Array(w * h);
+    let n = 0;
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i] || lab[i]) continue;
+      n++; let sp = 0, cnt = 0; st[sp++] = i; lab[i] = n;
+      while (sp) { const p = st[--sp]; cnt++; const x = p % w, y = (p / w) | 0;
+        if (x > 0 && mask[p - 1] && !lab[p - 1]) { lab[p - 1] = n; st[sp++] = p - 1; }
+        if (x < w - 1 && mask[p + 1] && !lab[p + 1]) { lab[p + 1] = n; st[sp++] = p + 1; }
+        if (y > 0 && mask[p - w] && !lab[p - w]) { lab[p - w] = n; st[sp++] = p - w; }
+        if (y < h - 1 && mask[p + w] && !lab[p + w]) { lab[p + w] = n; st[sp++] = p + w; } }
+      sizes.push(cnt);
+    }
+    return { lab, sizes };
+  }
+  function fillHoles(mask, w, h) {
+    const inv = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) inv[i] = mask[i] ? 0 : 1;
+    const { lab } = components(inv, w, h), edge = new Set();
+    for (let x = 0; x < w; x++) { edge.add(lab[x]); edge.add(lab[(h - 1) * w + x]); }
+    for (let y = 0; y < h; y++) { edge.add(lab[y * w]); edge.add(lab[y * w + w - 1]); }
+    const out = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) out[i] = mask[i] || !edge.has(lab[i]) ? 1 : 0;
+    return out;
+  }
+  const erode = (m, w, h, r) => { const f = new Float32Array(m); const o = minmax(f, w, h, r, false); const u = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) u[i] = o[i] > 0.5; return u; };
+  const dilate = (m, w, h, r) => { const f = new Float32Array(m); const o = minmax(f, w, h, r, true); const u = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) u[i] = o[i] > 0.5; return u; };
+
+  // ---------- segmentation: single loaf on a light board ----------
+  function segment(lab, w, h) {
+    const bs = gauss(lab.B, w, h, 2), vals = [];
+    for (let i = 0; i < w * h; i += 3) vals.push(bs[i]);
+    const th = otsu(vals);
+    let m = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) m[i] = bs[i] > th && lab.L[i] > 35 ? 1 : 0;
+    m = dilate(erode(m, w, h, 2), w, h, 2);
+    const { lab: cl, sizes } = components(m, w, h);
+    let best = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > (sizes[best] || 0)) best = i;
+    const out = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) out[i] = cl[i] === best ? 1 : 0;
+    return fillHoles(out, w, h);
+  }
+
+  // ---------- full analysis of one loaf image ----------
+  // img = {data: RGBA Uint8ClampedArray, width, height}; resample: function(img, box, maxDim) -> img (provided by caller)
+  function analyze(img, resample) {
+    // pass 1: low-res segmentation to locate the loaf
+    const small = resample(img, null, 360);
+    const sl = toLab(small.data, small.width * small.height);
+    const sm = segment(sl, small.width, small.height);
+    let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, area = 0;
+    for (let y = 0; y < small.height; y++) for (let x = 0; x < small.width; x++) if (sm[y * small.width + x]) { area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const fracArea = area / (small.width * small.height);
+    const q = { loafArea: fracArea };
+    if (area < 50) return { ok: false, reason: 'لم يتم العثور على رغيف في الصورة', quality: q };
+    const s = img.width / small.width, pad = 6;
+    const box = { x: Math.max(0, (x0 - pad) * s), y: Math.max(0, (y0 - pad) * s), w: Math.min(img.width, (x1 + pad) * s) - Math.max(0, (x0 - pad) * s), h: Math.min(img.height, (y1 + pad) * s) - Math.max(0, (y0 - pad) * s) };
+    // pass 2: normalised crop (loaf ~ 600 px) => scale-invariant features
+    const c = resample(img, box, 600), w = c.width, h = c.height, n = w * h;
+    const lab = toLab(c.data, n);
+    let mask = segment(lab, w, h);
+    const D = Math.sqrt(mask.reduce((a, b) => a + b, 0) * 4 / Math.PI);       // equivalent diameter (px)
+    const rim = Math.max(3, Math.round(D * 0.035));
+    const core = erode(mask, w, h, rim);
+    let N = 0; for (let i = 0; i < n; i++) N += core[i];
+    if (N < 2000) return { ok: false, reason: 'الرغيف صغير جداً في الصورة — قرّب الجوال', quality: q };
+    // illumination-normalised lightness
+    const bg = gauss(lab.L, w, h, Math.max(8, D / 12));
+    const Ln = new Float32Array(n); for (let i = 0; i < n; i++) Ln[i] = lab.L[i] / (bg[i] + 1e-3);
+    // quality metrics
+    let sL = 0, clip = 0, lapV = 0, lapM = 0;
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; if (!core[i]) continue; sL += lab.L[i]; if (lab.L[i] > 97) clip++; const lp = 4 * lab.L[i] - lab.L[i - 1] - lab.L[i + 1] - lab.L[i - w] - lab.L[i + w]; lapM += lp; lapV += lp * lp; }
+    q.meanL = sL / N; q.clipped = clip / N; lapM /= N; q.sharpness = lapV / N - lapM * lapM;
+    // pores: morphological black-hat at the pore scale
+    const k = Math.max(2, Math.round(D / 85));
+    const Ls = new Float32Array(n); for (let i = 0; i < n; i++) Ls[i] = Ln[i] * 120;
+    const close = minmax(minmax(Ls, w, h, k, true), w, h, k, false);
+    const pore = new Uint8Array(n); let pc = 0;
+    for (let i = 0; i < n; i++) { const bh = close[i] - Ls[i]; pore[i] = core[i] && bh > 14 ? 1 : 0; pc += pore[i]; }
+    const poreFrac = pc / N;
+    const { sizes: ps } = components(pore, w, h); const pSizes = ps.slice(1).filter(v => v >= 2);
+    const poreDensity = pSizes.length / N * 10000;                              // pores per 10k px
+    const pm = pSizes.length ? pSizes.reduce((a, b) => a + b, 0) / pSizes.length : 0;
+    const psd = pSizes.length ? Math.sqrt(pSizes.reduce((a, b) => a + (b - pm) ** 2, 0) / pSizes.length) : 0;
+    const poreSizeCV = pm ? psd / pm : 0;
+    // local texture (std) -> smooth fraction
+    const r2 = Math.max(3, Math.round(D / 60));
+    const mu = boxBlur(Ln, w, h, r2), mu2 = boxBlur(Ln.map(v => v * v), w, h, r2);
+    let smooth = 0, texSum = 0; const tex = new Float32Array(n);
+    for (let i = 0; i < n; i++) { if (!core[i]) continue; const sd = Math.sqrt(Math.max(0, mu2[i] - mu[i] * mu[i])); tex[i] = sd; texSum += sd; if (sd < 0.018) smooth++; }
+    const smoothFrac = smooth / N, texMean = texSum / N;
+    // wet / grey patches: darker AND greyer than loaf median, large blobs only
+    const Lb = gauss(lab.L, w, h, Math.max(4, D / 40)), Bb = gauss(lab.B, w, h, Math.max(4, D / 40));
+    const lv = [], bv = []; for (let i = 0; i < n; i += 2) if (core[i]) { lv.push(Lb[i]); bv.push(Bb[i]); }
+    lv.sort((a, b) => a - b); bv.sort((a, b) => a - b);
+    const Lmed = lv[lv.length >> 1], Bmed = bv[bv.length >> 1];
+    const wetC = new Uint8Array(n); for (let i = 0; i < n; i++) wetC[i] = core[i] && Lb[i] < Lmed - 12 && Bb[i] < Bmed - 4 ? 1 : 0;
+    const { lab: wl, sizes: ws } = components(wetC, w, h);
+    const wet = new Uint8Array(n); let wc = 0;
+    for (let i = 0; i < n; i++) if (wl[i] && ws[wl[i]] > 0.01 * N) { wet[i] = 1; wc++; }
+    const wetFrac = wc / N;
+    // spatial uniformity: CV of pore fraction over a 5x5 grid
+    let bx0 = w, by0 = h, bx1 = 0, by1 = 0; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (core[y * w + x]) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    const G = 5, cells = [];
+    for (let gy = 0; gy < G; gy++) for (let gx = 0; gx < G; gx++) {
+      let c1 = 0, c2 = 0; const ya = by0 + ((by1 - by0) * gy / G) | 0, yb = by0 + ((by1 - by0) * (gy + 1) / G) | 0, xa = bx0 + ((bx1 - bx0) * gx / G) | 0, xb = bx0 + ((bx1 - bx0) * (gx + 1) / G) | 0;
+      for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) { const i = y * w + x; if (core[i]) { c1++; c2 += pore[i]; } }
+      if (c1 > 0.7 * (yb - ya) * (xb - xa)) cells.push(c2 / c1);
+    }
+    const cm = cells.reduce((a, b) => a + b, 0) / (cells.length || 1);
+    const gridCV = cm < 0.005 ? 1 : cells.length > 3 ? Math.sqrt(cells.reduce((a, b) => a + (b - cm) ** 2, 0) / cells.length) / (cm + 1e-6) : 0;
+    // lacunarity of pore mask (gliding box, integral image)
+    const ii = new Float64Array((w + 1) * (h + 1));
+    for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += pore[y * w + x]; ii[(y + 1) * (w + 1) + x + 1] = ii[y * (w + 1) + x + 1] + row; } }
+    const bxs = Math.max(8, Math.round(D / 12)); let m1 = 0, m2 = 0, nb = 0;
+    for (let y = 0; y + bxs < h; y += 2) for (let x = 0; x + bxs < w; x += 2) {
+      if (!core[(y + (bxs >> 1)) * w + x + (bxs >> 1)] || !core[y * w + x] || !core[(y + bxs) * w + x + bxs]) continue;
+      const M = ii[(y + bxs) * (w + 1) + x + bxs] - ii[y * (w + 1) + x + bxs] - ii[(y + bxs) * (w + 1) + x] + ii[y * (w + 1) + x];
+      m1 += M; m2 += M * M; nb++;
+    }
+    const lacunarity = nb && m1 ? Math.min(50, (m2 / nb) / ((m1 / nb) ** 2)) : 50;
+    // GLCM (16 grey levels, distance ~ pore scale, 4 directions)
+    const Q = 16; let qmn = Infinity, qmx = -Infinity;
+    for (let i = 0; i < n; i++) if (core[i]) { if (Ln[i] < qmn) qmn = Ln[i]; if (Ln[i] > qmx) qmx = Ln[i]; }
+    const qv = new Uint8Array(n); for (let i = 0; i < n; i++) qv[i] = Math.min(Q - 1, Math.max(0, Math.floor((Ln[i] - qmn) / (qmx - qmn + 1e-6) * Q)));
+    const P = new Float64Array(Q * Q); let pt = 0; const dd = Math.max(1, k);
+    for (const [dx, dy] of [[dd, 0], [0, dd], [dd, dd], [dd, -dd]])
+      for (let y = Math.max(0, -dy); y < h - Math.max(0, dy); y++) for (let x = 0; x < w - dx; x++) { const i = y * w + x, j = (y + dy) * w + x + dx; if (core[i] && core[j]) { P[qv[i] * Q + qv[j]]++; P[qv[j] * Q + qv[i]]++; pt += 2; } }
+    let con = 0, hom = 0, ene = 0, ent = 0;
+    for (let a = 0; a < Q; a++) for (let b = 0; b < Q; b++) { const p = P[a * Q + b] / (pt || 1); if (!p) continue; con += p * (a - b) ** 2; hom += p / (1 + Math.abs(a - b)); ene += p * p; ent -= p * Math.log2(p); }
+    const features = { poreFrac, poreDensity, poreSizeCV, smoothFrac, texMean, wetFrac, gridCV, lacunarity, glcmContrast: con, glcmHomog: hom, glcmEnergy: ene, glcmEntropy: ent };
+    // quality flags
+    const flags = [];
+    if (q.sharpness < 2.5) flags.push('الصورة غير حادة (مهزوزة)');
+    if (q.meanL < 55) flags.push('الإضاءة ضعيفة');
+    if (q.clipped > 0.08) flags.push('إضاءة زائدة / انعكاس');
+    if (fracArea < 0.12) flags.push('الرغيف صغير في الصورة — قرّب الجوال');
+    if (fracArea > 0.85) flags.push('الرغيف يتجاوز إطار الصورة');
+    return { ok: true, features, quality: q, flags, maps: { w, h, core, pore, wet, smoothMap: tex, rgba: c.data } };
+  }
+
+  // ---------- default rule-based score (before training) ----------
+  const cl = (v, a, b) => Math.max(0, Math.min(1, (v - a) / (b - a)));
+  function ruleScore(f) {
+    let s = 1 + 2 * cl(f.poreFrac, 0.04, 0.18) + 1 * cl(0.45 - f.smoothFrac, 0, 0.35) + 1 * cl(0.6 - f.gridCV, 0, 0.4) - 2 * cl(f.wetFrac, 0.05, 0.2);
+    return Math.max(1, Math.min(5, s));
+  }
+
+  // ---------- statistics ----------
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const sd = a => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(1, a.length - 1)); };
+  const median = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  function bootstrapCI(a, B = 2000, seed = 7) {
+    let s = seed; const rnd = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    const ms = []; for (let b = 0; b < B; b++) { let t = 0; for (let i = 0; i < a.length; i++) t += a[(rnd() * a.length) | 0]; ms.push(t / a.length); }
+    ms.sort((x, y) => x - y); return [ms[Math.floor(0.025 * B)], ms[Math.floor(0.975 * B)]];
+  }
+  function weightedKappa(x, y, K = 5) { // quadratic weighted kappa, ratings 1..K
+    const O = Array.from({ length: K }, () => new Float64Array(K)), hx = new Float64Array(K), hy = new Float64Array(K);
+    for (let i = 0; i < x.length; i++) { O[x[i] - 1][y[i] - 1]++; hx[x[i] - 1]++; hy[y[i] - 1]++; }
+    const n = x.length; let num = 0, den = 0;
+    for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) { const wgt = (i - j) ** 2 / (K - 1) ** 2; num += wgt * O[i][j]; den += wgt * hx[i] * hy[j] / n; }
+    return den ? 1 - num / den : 1;
+  }
+  function icc21(M) { // M: rows=items, cols=raters (complete) -> ICC(2,1)
+    const n = M.length, k = M[0].length, g = mean(M.flat());
+    const rm = M.map(r => mean(r)), cm = Array.from({ length: k }, (_, j) => mean(M.map(r => r[j])));
+    let ssr = 0, ssc = 0, sst = 0; rm.forEach(v => ssr += k * (v - g) ** 2); cm.forEach(v => ssc += n * (v - g) ** 2); M.flat().forEach(v => sst += (v - g) ** 2);
+    const sse = sst - ssr - ssc, msr = ssr / (n - 1), msc = ssc / (k - 1), mse = sse / ((n - 1) * (k - 1));
+    return (msr - mse) / (msr + (k - 1) * mse + k * (msc - mse) / n);
+  }
+
+  // ---------- ordinal logistic regression (cumulative logit), Adam + L2 ----------
+  const sig = z => 1 / (1 + Math.exp(-z));
+  function fitOrdinal(X, y, K = 5, opt = {}) {
+    const d = X[0].length, lam = opt.l2 ?? 0.05, it = opt.iters ?? 600, lr = opt.lr ?? 0.05;
+    // balanced sample weights: each grade contributes equally (avoids bias to the majority grade)
+    const cnt = {}; y.forEach(c => cnt[c] = (cnt[c] || 0) + 1); const nc = Object.keys(cnt).length;
+    const sw = opt.balanced === false ? null : y.map(c => y.length / (nc * cnt[c]));
+    let w = new Float64Array(d), t0 = -2, dl = new Float64Array(K - 2).fill(Math.log(1.2));
+    const pars = () => { const th = [t0]; for (let j = 0; j < K - 2; j++) th.push(th[j] + Math.exp(dl[j])); return th; };
+    const P = d + 1 + (K - 2), m = new Float64Array(P), v = new Float64Array(P);
+    for (let t = 1; t <= it; t++) {
+      const th = pars(), gw = new Float64Array(d), gth = new Float64Array(K - 1);
+      for (let i = 0; i < X.length; i++) {
+        let eta = 0; for (let j = 0; j < d; j++) eta += w[j] * X[i][j];
+        const c = y[i] - 1; // class 0..K-1
+        const Fu = c < K - 1 ? sig(th[c] - eta) : 1, Fl = c > 0 ? sig(th[c - 1] - eta) : 0;
+        const p = Math.max(1e-9, Fu - Fl), fu = c < K - 1 ? Fu * (1 - Fu) : 0, fl = c > 0 ? Fl * (1 - Fl) : 0;
+        const wi = sw ? sw[i] : 1, dEta = wi * (fu - fl) / p; // d(-logp)/d eta (class-balanced)
+        for (let j = 0; j < d; j++) gw[j] += dEta * X[i][j];
+        if (c < K - 1) gth[c] -= wi * fu / p; if (c > 0) gth[c - 1] += wi * fl / p;
+      }
+      for (let j = 0; j < d; j++) gw[j] = gw[j] / X.length + lam * w[j];
+      // chain rule to t0, dl
+      const g = new Float64Array(P); for (let j = 0; j < d; j++) g[j] = gw[j];
+      let acc = 0; for (let j = K - 2; j >= 0; j--) { acc += gth[j] / X.length; if (j === 0) g[d] = acc; else g[d + j] = acc * Math.exp(dl[j - 1]); }
+      for (let j = 0; j < P; j++) { m[j] = 0.9 * m[j] + 0.1 * g[j]; v[j] = 0.999 * v[j] + 0.001 * g[j] * g[j]; const st = lr * (m[j] / (1 - 0.9 ** t)) / (Math.sqrt(v[j] / (1 - 0.999 ** t)) + 1e-8);
+        if (j < d) w[j] -= st; else if (j === d) t0 -= st; else dl[j - d - 1] -= st; }
+    }
+    return { w: Array.from(w), th: pars(), K };
+  }
+  function predictOrdinal(mdl, x) {
+    let eta = 0; for (let j = 0; j < x.length; j++) eta += mdl.w[j] * x[j];
+    const F = mdl.th.map(t => sig(t - eta)), p = []; let prev = 0;
+    for (let k = 0; k < mdl.K; k++) { const cur = k < mdl.K - 1 ? F[k] : 1; p.push(cur - prev); prev = cur; }
+    const ev = p.reduce((a, pk, k) => a + pk * (k + 1), 0);
+    let mode = 0; p.forEach((v, k) => { if (v > p[mode]) mode = k; });
+    return { p, expected: ev, cls: mode + 1 };
+  }
+  const FEATS = ['poreFrac', 'poreDensity', 'poreSizeCV', 'smoothFrac', 'texMean', 'wetFrac', 'gridCV', 'lacunarity', 'glcmContrast', 'glcmHomog', 'glcmEnergy', 'glcmEntropy'];
+  function standardise(rows) {
+    const mu = FEATS.map(f => mean(rows.map(r => r[f]))), sg = FEATS.map((f, j) => sd(rows.map(r => r[f])) || 1);
+    return { mu, sg, X: rows.map(r => FEATS.map((f, j) => (r[f] - mu[j]) / sg[j])) };
+  }
+  function trainModel(rows, labels, folds = 5) {
+    const { mu, sg, X } = standardise(rows), n = X.length;
+    // stratified fold assignment
+    const fold = new Array(n), byCls = {}; labels.forEach((c, i) => (byCls[c] = byCls[c] || []).push(i));
+    Object.values(byCls).forEach(ix => ix.forEach((i, k) => fold[i] = k % folds));
+    const pred = new Array(n);
+    for (let f = 0; f < folds; f++) {
+      const tr = [], te = []; for (let i = 0; i < n; i++) (fold[i] === f ? te : tr).push(i);
+      if (!te.length || tr.length < 10) continue;
+      const m = fitOrdinal(tr.map(i => X[i]), tr.map(i => labels[i]));
+      te.forEach(i => pred[i] = predictOrdinal(m, X[i]).cls);
+    }
+    const ok = pred.map((p, i) => p != null ? i : -1).filter(i => i >= 0);
+    const yt = ok.map(i => labels[i]), yp = ok.map(i => pred[i]);
+    const conf = Array.from({ length: 5 }, () => new Array(5).fill(0)); yt.forEach((t, i) => conf[t - 1][yp[i] - 1]++);
+    const metrics = ok.length ? { n: ok.length, accuracy: mean(yt.map((t, i) => +(t === yp[i]))), within1: mean(yt.map((t, i) => +(Math.abs(t - yp[i]) <= 1))), mae: mean(yt.map((t, i) => Math.abs(t - yp[i]))), qwk: weightedKappa(yt, yp), confusion: conf,
+      recallPoor: (() => { const idx = yt.map((t, i) => t <= 2 ? i : -1).filter(i => i >= 0); return idx.length ? mean(idx.map(i => +(yp[i] <= 2))) : null; })() } : null;
+    const final = fitOrdinal(X, labels);
+    const importance = FEATS.map((f, j) => ({ f, w: final.w[j] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
+    return { model: { ...final, mu, sg, feats: FEATS, trainedAt: Date.now(), n }, metrics, importance };
+  }
+  function scoreWithModel(model, f) {
+    const x = model.feats.map((k, j) => (f[k] - model.mu[j]) / model.sg[j]);
+    return predictOrdinal(model, x);
+  }
+  return { analyze, ruleScore, trainModel, scoreWithModel, bootstrapCI, weightedKappa, icc21, mean, sd, median, FEATS };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+</script><script>const BUILTIN = {"w":[-0.11686,0.58554,-0.04288,-0.99598,-0.06824,-0.18206,-0.68203,-0.29593,-0.1928,-0.29563,-0.11821,-0.41269],"th":[-9.10961,-2.71891,-0.09558,1.7595],"K":5,"mu":[0.13998,28.00706,2.86241,0.13631,0.05917,0.00011,0.58715,5.72397,2.0328,0.64875,0.07304,4.80239],"sg":[0.16034,25.78625,3.31174,0.20963,0.03776,0.00146,0.38872,10.04314,1.18303,0.08322,0.03992,0.65032],"feats":["poreFrac","poreDensity","poreSizeCV","smoothFrac","texMean","wetFrac","gridCV","lacunarity","glcmContrast","glcmHomog","glcmEnergy","glcmEntropy"],"trainedAt":1795449187507,"n":187,"builtin":true,"label":"\u0645\u0639\u0627\u064a\u064e\u0631 \u0639\u0644\u0649 \u0635\u0648\u0631 \u0627\u0644\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0631\u062c\u0639\u064a\u0629"};</script><script>/* ===== تطبيق المراقبين: تحليل فقط، يعمل دون إنترنت ===== */
+const MODEL_URL = '__MODEL_URL__';   // رابط تطبيق التدريب (Apps Script) — منه يُسحب النموذج المعتمد
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const LEVEL = { 1: 'ضعيف جدًا', 2: 'ضعيف', 3: 'مقبول', 4: 'جيد', 5: 'جيد جدًا' };
+const DESC = { 1: 'لب متكتل أو غير مختمر أو غير ناضج، وفراغات غير منتظمة جدًا', 2: 'توزيع هواء غير متجانس مع مناطق كثيفة متكتلة', 3: 'تفاوت بسيط في توزيع الفراغات الهوائية', 4: 'لب متجانس بمسامات منتظمة مع تفاوت طفيف', 5: 'لب متجانس تمامًا، مسامات دقيقة منتظمة، قوام إسفنجي مرن' };
+const LOAVES = 5;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (v, d = 1) => v == null || isNaN(v) ? '—' : Number(v).toFixed(d);
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } };
+const tick = () => new Promise(r => setTimeout(r, 30));
+
+function loadFile(file) { return new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; }); }
+function imgToData(im, maxDim = 1600) { const s = Math.min(1, maxDim / Math.max(im.naturalWidth, im.naturalHeight)); const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s); const g = c.getContext('2d'); g.drawImage(im, 0, 0, c.width, c.height); return g.getImageData(0, 0, c.width, c.height); }
+function resample(img, box, maxDim) {
+  const b = box || { x: 0, y: 0, w: img.width, h: img.height };
+  const sc = maxDim / Math.max(b.w, b.h), W = Math.max(1, Math.round(b.w * sc)), H = Math.max(1, Math.round(b.h * sc));
+  const src = document.createElement('canvas'); src.width = img.width; src.height = img.height; src.getContext('2d').putImageData(new ImageData(img.data, img.width, img.height), 0, 0);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, b.x, b.y, b.w, b.h, 0, 0, W, H);
+  const d = g.getImageData(0, 0, W, H); return { data: d.data, width: W, height: H };
+}
+function overlayOf(m) {
+  const c = document.createElement('canvas'); c.width = m.w; c.height = m.h; const g = c.getContext('2d');
+  const id = new ImageData(new Uint8ClampedArray(m.rgba), m.w, m.h);
+  for (let i = 0; i < m.w * m.h; i++) {
+    const o = i * 4; let col = null;
+    if (!m.core[i]) { id.data[o] *= 0.55; id.data[o + 1] *= 0.55; id.data[o + 2] *= 0.55; continue; }
+    if (m.wet[i]) col = [255, 140, 0]; else if (m.pore[i]) col = [40, 200, 70]; else if (m.smoothMap[i] < 0.018) col = [230, 50, 50];
+    if (col) for (let k = 0; k < 3; k++) id.data[o + k] = id.data[o + k] * 0.5 + col[k] * 0.5;
+  }
+  g.putImageData(id, 0, 0); return c.toDataURL('image/jpeg', 0.6);
+}
+
+// ---------- model: published (cached) or built-in ----------
+function model() { const p = lsGet('mModel', null); return p ? p : { version: 0, model: BUILTIN }; }
+async function updateModel() {
+  if (!MODEL_URL.startsWith('http') || !navigator.onLine) return;
+  try {
+    const r = await fetch(MODEL_URL + (MODEL_URL.includes('?') ? '&' : '?') + 'model=1', { cache: 'no-store' });
+    const p = await r.json();
+    if (p && p.model && p.version && p.version !== model().version) { lsSet('mModel', { version: p.version, publishedAt: p.publishedAt, model: p.model }); toast('تم تحديث النموذج إلى الإصدار v' + p.version); }
+  } catch (e) { }
+  ver();
+}
+function ver() { const m = model(); $('#ver').textContent = 'النموذج ' + (m.version ? 'v' + m.version + (m.publishedAt ? ' – ' + new Date(m.publishedAt).toLocaleDateString('ar') : '') : 'الأساسي'); }
+function toast(t) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
+
+// ---------- indicators (why this grade) ----------
+const IND = [
+  { k: 'smoothFrac', name: 'المناطق الملساء/الكثيفة', good: v => v < 0.05, fair: v => v < 0.2, show: v => Math.round(v * 100) + '%' },
+  { k: 'poreDensity', name: 'كثافة المسامات', good: v => v > 30, fair: v => v > 12, show: v => fmt(v, 0) },
+  { k: 'gridCV', name: 'انتظام التوزيع', good: v => v < 0.45, fair: v => v < 0.7, show: v => v < 0.45 ? 'منتظم' : v < 0.7 ? 'متفاوت' : 'غير منتظم' },
+  { k: 'wetFrac', name: 'بقع الرطوبة', good: v => v < 0.02, fair: v => v < 0.08, show: v => Math.round(v * 100) + '%' }
+];
+const indRows = f => IND.map(i => { const v = f[i.k], c = i.good(v) ? 'ok' : i.fair(v) ? 'mid' : 'bad'; return `<tr><td>${i.name}</td><td><span class="dot ${c}"></span>${i.show(v)}</td></tr>`; }).join('');
+
+// ---------- flow ----------
+let cur = null;
+function show(tab) { $$('.tab').forEach(t => t.hidden = t.id !== 'tab-' + tab); $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); ({ eval: renderEval, log: renderLog })[tab](); }
+function renderEval() {
+  const el = $('#tab-eval'), st = lsGet('mSet', {});
+  if (!cur) {
+    el.innerHTML = `<div class="card"><h2>تقييم عيّنة</h2>
+      <label>المخبز<input id="e-bak" list="bl" value="${esc(st.bakery || '')}" placeholder="اسم المخبز"></label><datalist id="bl">${(st.bakeries || []).map(b => `<option>${esc(b)}</option>`).join('')}</datalist>
+      <div class="row"><label>النوع<select id="e-type"><option value="line">خط إنتاج</option><option value="shelf">أرفف</option></select></label><label>الخط<input id="e-line" type="number" min="1" max="6" value="${st.line || 1}"></label></div>
+      <div class="hint">افصل الرغيف وضع <b>الطبقة العليا</b> ووجهها الداخلي للأعلى على خلفية داكنة. صوّر من الأعلى مباشرة، بلا فلاش ولا ظل، ورغيف واحد يملأ معظم الإطار. صوّر ${LOAVES} أرغفة عشوائية.</div>
+      <button class="primary" id="e-go">بدء</button></div>`;
+    $('#e-go').onclick = () => { const b = $('#e-bak').value.trim(); lsSet('mSet', { bakery: b, line: +$('#e-line').value, bakeries: b ? [...new Set([b, ...(st.bakeries || [])])].slice(0, 80) : (st.bakeries || []) }); cur = { ts: new Date().toISOString(), bakery: b, type: $('#e-type').value, line: +$('#e-line').value, ver: model().version, loaves: [] }; renderEval(); };
+    return;
+  }
+  const i = cur.loaves.length;
+  if (i < LOAVES) {
+    el.innerHTML = `<div class="card"><h2>الرغيف ${i + 1} من ${LOAVES}</h2>
+      <div class="progress">${Array.from({ length: LOAVES }, (_, k) => `<span class="${k < i ? 'done' : k === i ? 'now' : ''}"></span>`).join('')}</div>
+      <label class="cam">📷 صوّر الرغيف ${i + 1}<input id="cap" type="file" accept="image/*" capture="environment" hidden></label>
+      <div id="work"></div>${i ? '<button class="ghost" id="e-end">إنهاء بعدد الأرغفة الحالي</button>' : ''}<button class="ghost" id="e-x">إلغاء</button></div>`;
+    $('#e-x').onclick = () => { if (confirm('إلغاء العيّنة؟')) { cur = null; renderEval(); } };
+    if ($('#e-end')) $('#e-end').onclick = () => { cur.done = true; summary(); };
+    $('#cap').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      $('#work').innerHTML = '<div class="spin">جارٍ التحليل…</div>'; await tick();
+      try {
+        const im = await loadFile(f), d = imgToData(im);
+        const r = Engine.analyze({ data: d.data, width: d.width, height: d.height }, resample);
+        if (!r.ok) { $('#work').innerHTML = `<div class="warn">${esc(r.reason)}. أعد التصوير.</div>`; return; }
+        const p = Engine.scoreWithModel(model().model, r.features), lvl = Math.max(1, Math.min(5, Math.round(p.expected))), conf = p.p[lvl - 1];
+        const loaf = { score: p.expected, lvl, conf, f: r.features, flags: r.flags, ov: overlayOf(r.maps) };
+        $('#work').innerHTML = `${r.flags.length ? `<div class="warn">⚠️ ${r.flags.map(esc).join('، ')} — يُفضّل إعادة التصوير</div>` : ''}
+          <div class="score s${lvl}">${LEVEL[lvl]}<small>${fmt(p.expected)} من 5 • ثقة ${conf >= 0.6 ? 'عالية' : conf >= 0.4 ? 'متوسطة' : 'منخفضة'}</small></div>
+          <img class="big" src="${loaf.ov}"><div class="legend"><span class="g">مسامات</span><span class="r">مناطق ملساء/كثيفة</span><span class="o">رطوبة</span></div>
+          <table class="kv">${indRows(r.features)}</table>
+          <button class="primary" id="ok">${i + 1 < LOAVES ? 'الرغيف التالي' : 'نتيجة العيّنة'}</button><button class="ghost" id="re">إعادة التصوير</button>`;
+        $('label.cam').hidden = true;
+        $('#ok').onclick = () => { cur.loaves.push(loaf); cur.loaves.length >= LOAVES ? summary() : renderEval(); };
+        $('#re').onclick = () => renderEval();
+      } catch (err) { $('#work').innerHTML = `<div class="warn">تعذّر تحليل الصورة: ${esc(err.message)}</div>`; }
+    };
+    return;
+  }
+  summary();
+}
+function summary() {
+  const L = cur.loaves, sc = L.map(l => l.score), mean = Engine.mean(sc), sd = Engine.sd(sc), mn = Math.min(...sc);
+  const final = Math.max(1, mean - (sd > 0.8 ? 0.5 : 0)), lvl = Math.round(final);
+  const notes = [];
+  if (mn < 2.5) notes.push(`أضعف رغيف ${fmt(mn)} — تحقق من التخمير ونضج الخبز`);
+  if (sd > 0.8) notes.push('تفاوت كبير بين الأرغفة — خُصم 0.5 من الدرجة');
+  if (L.length < LOAVES) notes.push(`العيّنة ${L.length} أرغفة فقط من ${LOAVES}`);
+  $('#tab-eval').innerHTML = `<div class="card"><h2>نتيجة العيّنة</h2>${cur.bakery ? `<div class="muted center">${esc(cur.bakery)} • ${cur.type === 'line' ? 'خط ' + cur.line : 'أرفف'}</div>` : ''}
+    <div class="score s${lvl}">${fmt(final)}<small>${LEVEL[lvl]}</small></div><div class="muted center">${DESC[lvl]}</div>
+    ${notes.length ? `<div class="warn">${notes.map(esc).join('<br>')}</div>` : ''}
+    <div class="grid5">${L.map((l, k) => `<figure><img src="${l.ov}"><figcaption>${k + 1}: ${fmt(l.score)}</figcaption></figure>`).join('')}</div>
+    <table class="kv"><tr><td>متوسط الأرغفة</td><td>${fmt(mean, 2)}</td></tr><tr><td>أضعف رغيف</td><td>${fmt(mn, 2)}</td></tr><tr><td>التفاوت بين الأرغفة</td><td>${fmt(sd, 2)}</td></tr></table>
+    <div class="muted center">${$('#ver').textContent}</div>
+    <button class="primary" id="new">عيّنة جديدة</button></div>`;
+  const H = lsGet('mLog', []); H.unshift({ ts: cur.ts, bakery: cur.bakery, type: cur.type, line: cur.line, n: L.length, final, mean, min: mn, sd, ver: cur.ver, loaves: L.map(l => +l.score.toFixed(2)) }); lsSet('mLog', H.slice(0, 200));
+  $('#new').onclick = () => { cur = null; renderEval(); };
+}
+function renderLog() {
+  const H = lsGet('mLog', []);
+  $('#tab-log').innerHTML = `<div class="card"><h2>آخر التقييمات (${H.length})</h2>${H.length ? `<table class="grid"><tr><th>التاريخ</th><th>المخبز</th><th>الدرجة</th><th>أرغفة</th></tr>${H.map(h => `<tr><td>${new Date(h.ts).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(h.bakery || '—')}${h.type === 'line' ? ' • خط ' + h.line : ' • أرفف'}</td><td><b class="s${Math.round(h.final)}">${fmt(h.final)}</b></td><td>${h.n}</td></tr>`).join('')}</table>` : '<div class="muted">لا توجد تقييمات بعد</div>'}
+    <div class="muted">السجل محفوظ على هذا الجوال فقط ولا يُرسل لأي جهة.</div>${H.length ? '<button class="danger" id="clr">مسح السجل</button>' : ''}</div>`;
+  if ($('#clr')) $('#clr').onclick = () => { if (confirm('مسح كل السجل؟')) { lsSet('mLog', []); renderLog(); } };
+}
+$$('nav button').forEach(b => b.onclick = () => show(b.dataset.tab));
+ver(); show('eval'); updateModel();
+window.addEventListener('online', updateModel);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+</script></body></html>
